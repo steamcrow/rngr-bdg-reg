@@ -3,11 +3,19 @@
 // we re-read the claim from Odoo, find out WHO made it from Odoo's own create_uid, check the code, and write the result back.
 // The secret code never leaves Odoo/this Worker. A once-a-minute sweeper picks up any claim that was missed.
 
-const MAX_FAILS = 5;            // wrong codes allowed ...
-const FAIL_WINDOW_MIN = 15;     // ... per this many minutes, per Ranger
+// Guessing limits (only WRONG codes count; being told "locked" never extends the lock)
+const MAX_FAILS = 5;            // wrong codes allowed per 15 minutes, per Ranger
+const FAIL_WINDOW_MIN = 15;
+const MAX_FAILS_DAY = 15;       // ... and per 24 hours, per Ranger
+const NEW_DAYS = 7;             // an account younger than this is "new"
+const NEW_MAX_FAILS = 3;        // new accounts: 3 wrong per 15 minutes
+const NEW_MAX_FAILS_DAY = 6;    // new accounts: 6 wrong per 24 hours
+const NEW_GLOBAL_MAX = 60;      // if the whole site gets this many wrong codes in 10 minutes, NEW accounts are paused
+const GLOBAL_WINDOW_MIN = 10;   // (established Rangers are never affected, so a swarm of fake accounts can't block them)
 const MSG = {
   invalid: "That code was not recognized. Check the characters and try again.",
-  locked: "Too many tries. Please wait 15 minutes and try again.",
+  locked: "Too many tries. Please wait a while and try again.",
+  busy: "The badge desk is busy right now. Please try again in a few minutes.",
   already: "You already have this badge.",
   ok: "Badge added to your collection!",
   error: "We couldn't register that one automatically. Central Command will take a look.",
@@ -49,16 +57,21 @@ export async function processClaim(env, id, stale = false) {
   const finish = (status, message, extra = {}) =>
     o("x_badge_claim", "write", [[id], { x_status: status, x_message: message, x_code: false, ...extra }]);   // the code is wiped from the claim
   const userId = c.create_uid && c.create_uid[0];
-  const user = userId ? (await o("res.users", "read", [[userId]], { fields: ["partner_id", "active"] }))[0] : null;
+  const user = userId ? (await o("res.users", "read", [[userId]], { fields: ["partner_id", "active", "create_date"] }))[0] : null;
   if (!user || !user.active || !user.partner_id) return finish("error", MSG.error);
   const partnerId = user.partner_id[0];
 
   const code = (c.x_code || "").trim();
   if (!code || code.length > 64) return finish("invalid", MSG.invalid);
 
-  const fails = await o("x_badge_claim", "search_count", [[["create_uid", "=", userId], ["x_status", "in", ["invalid", "locked"]],
-    ["create_date", ">", odooTime(Date.now() - FAIL_WINDOW_MIN * 60000)]]]);
-  if (fails >= MAX_FAILS) return finish("locked", MSG.locked);
+  const isNew = !!user.create_date && Date.parse(user.create_date.replace(" ", "T") + "Z") > Date.now() - NEW_DAYS * 86400000;
+  const wrong = (mins) => o("x_badge_claim", "search_count", [[["create_uid", "=", userId], ["x_status", "=", "invalid"],
+    ["create_date", ">", odooTime(Date.now() - mins * 60000)]]]);
+  if ((await wrong(FAIL_WINDOW_MIN)) >= (isNew ? NEW_MAX_FAILS : MAX_FAILS) || (await wrong(1440)) >= (isNew ? NEW_MAX_FAILS_DAY : MAX_FAILS_DAY)) return finish("locked", MSG.locked);
+  if (isNew) {
+    const all = await o("x_badge_claim", "search_count", [[["x_status", "=", "invalid"], ["create_date", ">", odooTime(Date.now() - GLOBAL_WINDOW_MIN * 60000)]]]);
+    if (all >= NEW_GLOBAL_MAX) return finish("locked", MSG.busy);
+  }
 
   const prods = await o("product.template", "search_read", [[["x_studio_badge_secret_code", "=", code]]],
     { fields: ["name", "x_studio_badge_point_value"] });              // active products only; archived aliases are ignored

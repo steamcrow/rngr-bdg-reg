@@ -48,6 +48,29 @@ ok("absurdly long code -> invalid", db.x_badge_claim[c].x_status === "invalid");
 for (let i = 0; i < 5; i++) await processClaim(env, newClaim(8, "bad" + i));
 c = newClaim(8, "@ffirm"); await processClaim(env, c);
 ok("after 5 wrong tries the Ranger is locked out", db.x_badge_claim[c].x_status === "locked");
+// new accounts get a tighter leash
+db["res.users"][9] = { id: 9, partner_id: [90, "New Ranger"], active: true, create_date: stamp(Date.now() - 3600000) };
+for (let i = 0; i < 3; i++) await processClaim(env, newClaim(9, "guess" + i));
+c = newClaim(9, "@ffirm"); await processClaim(env, c);
+ok("a brand-new account is locked after only 3 wrong tries", db.x_badge_claim[c].x_status === "locked" && regs(90) === 0);
+// being locked does not extend the lock: wrong tries from 20 minutes ago no longer count
+db["res.users"][11] = { id: 11, partner_id: [110, "Old Ranger"], active: true, create_date: stamp(Date.now() - 90 * 86400000) };
+for (let i = 0; i < 5; i++) newClaim(11, "old" + i, 20 * 60000, "invalid");
+c = newClaim(11, "@ffirm"); await processClaim(env, c);
+ok("wrong tries older than 15 minutes stop counting", db.x_badge_claim[c].x_status === "registered");
+// daily cap: 15 wrong tries spread over the day locks even if the last 15 minutes are quiet
+db["res.users"][12] = { id: 12, partner_id: [120, "Slow Guesser"], active: true, create_date: stamp(Date.now() - 90 * 86400000) };
+for (let i = 0; i < 15; i++) newClaim(12, "slow" + i, 3 * 3600000, "invalid");
+c = newClaim(12, "@ffirm"); await processClaim(env, c);
+ok("slow guessing hits the 24-hour cap", db.x_badge_claim[c].x_status === "locked");
+// swarm of fake accounts: new accounts are paused, established Rangers are not
+for (let u = 20; u < 40; u++) for (let i = 0; i < 4; i++) newClaim(u, "swarm", 60000, "invalid");
+db["res.users"][13] = { id: 13, partner_id: [130, "Newer"], active: true, create_date: stamp(Date.now() - 600000) };
+c = newClaim(13, "@ffirm"); await processClaim(env, c);
+ok("during a site-wide guessing swarm, NEW accounts are paused", db.x_badge_claim[c].x_status === "locked" && /busy/.test(db.x_badge_claim[c].x_message));
+db["res.users"][14] = { id: 14, partner_id: [140, "Veteran"], active: true, create_date: stamp(Date.now() - 400 * 86400000) };
+c = newClaim(14, "@ffirm"); await processClaim(env, c);
+ok("... but established Rangers still register normally", db.x_badge_claim[c].x_status === "registered");
 // race: two claims for a new badge processed at once
 db["product.template"][103] = { id: 103, name: "Race", x_studio_badge_secret_code: "race", x_studio_badge_point_value: 25 };
 const r1 = newClaim(7, "race"), r2 = newClaim(7, "race");
