@@ -1,0 +1,10 @@
+# NEVER commit secrets or private data
+*PRIVATE*
+*.env
+.env*
+.dev.vars
+node_modules/
+.DS_Store
+*_backup_*
+*.csv
+*.xlsx

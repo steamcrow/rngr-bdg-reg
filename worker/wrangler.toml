@@ -1,0 +1,9 @@
+name = "rngr-badge-checker"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+[triggers]
+crons = ["* * * * *"]     # the once-a-minute safety sweeper
+
+# Secrets (set with `npx wrangler secret put NAME`, never written in this file):
+#   ODOO_URL  ODOO_DB  ODOO_USER  ODOO_API_KEY  HOOK_SECRET
