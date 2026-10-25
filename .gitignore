@@ -8,3 +8,5 @@ node_modules/
 *_backup_*
 *.csv
 *.xlsx
+.wrangler/
+node_modules/
