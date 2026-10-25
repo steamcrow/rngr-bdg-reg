@@ -13,6 +13,8 @@
   --mr-blue: #aebfd1;       /* Steam Crow blue, used sparingly */
   --mr-grey: #6b6f73;
   --mr-stitch: rgba(71, 43, 68, .45);
+  --mr-line: #aebfd1;       /* dashed card frames: Steam Crow light blue */
+  --mr-orange-hi: #f2842f;  /* menu links on plum: a little brighter than the button orange */
 }
 
 /* ---- paper: every page that used to be white ---- */
@@ -29,7 +31,7 @@
 /* ---- cards, product tiles, filter boxes: paper clippings with stitching ---- */
 #wrapwrap > main .card, #wrapwrap > main .oe_product_cart, #wrapwrap > main .o_wsale_product_information,
 .mrb-card, #wrapwrap > main .o_mr_card {
-  background-color: #fbf5e6; border: 2px dashed var(--mr-stitch); border-radius: .5rem; box-shadow: none; outline: 0;
+  background-color: #fbf5e6; border: 2px dashed var(--mr-line); border-radius: .5rem; box-shadow: none; outline: 0;
 }
 /* room to breathe: wider gaps between cards and more padding inside them */
 #wrapwrap > main .row { --bs-gutter-x: 2rem; --bs-gutter-y: 2rem; }
@@ -37,7 +39,7 @@
 #wrapwrap > main .o_wsale_product_information { padding: 1rem 1.25rem 1.4rem; }
 #wrapwrap > main .oe_product_cart { margin-bottom: .5rem; }
 #wrapwrap > main .o_wsale_product_information { border-top: 0; border-radius: 0 0 .5rem .5rem; }
-#wrapwrap > main hr { border-top: 2px dashed var(--mr-stitch); opacity: 1; }
+#wrapwrap > main hr { border-top: 2px dashed var(--mr-line); opacity: 1; }
 
 /* ---- buttons: little stamped tabs ---- */
 .btn-primary, #wrapwrap > main .btn-primary {
@@ -48,12 +50,16 @@
 .btn-primary:active, .btn-primary:focus-visible { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--mr-plum-deep); }
 .btn-secondary, #wrapwrap > main .btn-secondary { background: var(--mr-plum); border: 2px solid var(--mr-plum-deep); color: var(--mr-cream); border-radius: .35rem; text-transform: uppercase; letter-spacing: .06em; }
 
-/* ---- menus: dark and cream, not white ---- */
+/* ---- menus: plum panel, cream headings, orange links that turn cream on hover ---- */
 .dropdown-menu, .o_mega_menu, .o_mega_menu .dropdown-menu { background-color: var(--mr-plum); color: var(--mr-cream); border: 0; border-top: 3px solid var(--mr-orange); box-shadow: 0 10px 24px rgba(0, 0, 0, .35); }
-.o_mega_menu h1, .o_mega_menu h2, .o_mega_menu h3, .o_mega_menu h4, .o_mega_menu h5, .o_mega_menu h6, .o_mega_menu .s_mega_menu_title { color: var(--mr-cream); border-bottom: 2px solid var(--mr-orange); }
-.dropdown-menu .dropdown-item, .o_mega_menu a, .o_mega_menu .nav-link { color: var(--mr-cream); }
-.dropdown-menu .dropdown-item:hover, .dropdown-menu .dropdown-item:focus, .o_mega_menu a:hover, .o_mega_menu .nav-link:hover { background: var(--mr-plum-deep); color: var(--mr-orange); }
 .o_mega_menu .o_cc1, .o_mega_menu .o_cc { background-color: transparent; --o-cc-bg: transparent; color: var(--mr-cream); }
+.o_mega_menu :is(h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6) { color: var(--mr-cream) !important; border-bottom: 0 !important; }   /* the menu already draws its own orange rule */
+.o_mega_menu a, .o_mega_menu .nav-link, .dropdown-menu .dropdown-item {
+  color: var(--mr-orange-hi) !important; background: transparent !important; opacity: 1 !important; transition: color .12s;
+}
+.o_mega_menu a:hover, .o_mega_menu a:focus-visible, .o_mega_menu .nav-link:hover, .dropdown-menu .dropdown-item:hover, .dropdown-menu .dropdown-item:focus-visible {
+  color: var(--mr-cream) !important; background: transparent !important; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px; text-decoration-color: var(--mr-orange);
+}
 
 /* ---- header and footer bands ---- */
 #wrapwrap > header { border-bottom: 3px solid var(--mr-orange); }
@@ -89,5 +95,5 @@ h5, h6, .h5, .h6 { font-family: var(--mr-font-body); font-weight: 700; }   /* st
 code, pre, kbd, samp { font-family: ui-monospace, "Courier Prime", Menlo, Consolas, monospace; }
 
 /* ---- the badge page ---- */
-#mr-badges-app .mrb-card { background-color: #fbf5e6; border: 2px dashed var(--mr-stitch); color: var(--mr-ink); }
-#mr-badges-app .mrb-msg { border: 2px dashed var(--mr-stitch); }
+#mr-badges-app .mrb-card { background-color: #fbf5e6; border: 2px dashed var(--mr-line); color: var(--mr-ink); }
+#mr-badges-app .mrb-msg { border: 2px dashed var(--mr-line); }
