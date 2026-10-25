@@ -1,0 +1,90 @@
+/* Monster Rangers "Field Manual" theme: parchment pages between dark plum-brown bands, orange accents, stitched cards.
+   Loaded on the Monster Rangers website only (via the site's head code). The parchment picture itself is set in the head code,
+   because a picture named in an outside stylesheet would be looked for on the wrong website.
+   Colors: change them here and nowhere else. */
+:root {
+  --mr-plum: #472b44;       /* header, footer, menus (your current plum-brown) */
+  --mr-plum-deep: #33203a;  /* footer, hover */
+  --mr-ink: #2b1d1a;        /* text on paper */
+  --mr-cream: #f6ecd9;      /* text on dark, light paper */
+  --mr-paper: #f3e7cf;      /* paper color if the picture is slow to load */
+  --mr-orange: #dc6b21;     /* your accent, for dark backgrounds and buttons */
+  --mr-orange-ink: #a8470f; /* orange links on paper: darker so they stay readable */
+  --mr-blue: #aebfd1;       /* Steam Crow blue, used sparingly */
+  --mr-grey: #6b6f73;
+  --mr-stitch: rgba(71, 43, 68, .45);
+}
+
+/* ---- paper: every page that used to be white ---- */
+#wrapwrap > main { background-color: var(--mr-paper); color: var(--mr-ink); }
+#wrapwrap > main .o_cc1:not(.oe_img_bg):not([style*="background-image"]) { background-color: transparent; --o-cc-bg: transparent; }
+#wrapwrap > main { line-height: 1.7; }
+#wrapwrap > main .container, #wrapwrap > main .container-fluid { max-width: 1140px; }
+#wrapwrap > main p, #wrapwrap > main li { max-width: 75ch; }          /* lines short enough to read comfortably */
+
+/* ---- links on paper ---- */
+#wrapwrap > main a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link) { color: var(--mr-orange-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+#wrapwrap > main a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link):hover { color: var(--mr-plum); }
+
+/* ---- cards, product tiles, filter boxes: paper clippings with stitching ---- */
+#wrapwrap > main .card, #wrapwrap > main .oe_product_cart, #wrapwrap > main .o_wsale_product_information,
+.mrb-card, #wrapwrap > main .o_mr_card {
+  background-color: #fbf5e6; border: 2px dashed var(--mr-stitch); border-radius: .5rem;
+  box-shadow: 0 2px 0 rgba(71, 43, 68, .18); outline: 1px solid rgba(251, 245, 230, .9); outline-offset: -6px;
+}
+#wrapwrap > main .oe_product_cart:hover, #wrapwrap > main .card:hover { transform: translateY(-2px); transition: transform .15s ease-out; }
+#wrapwrap > main .o_wsale_product_information { border-top: 0; border-radius: 0 0 .5rem .5rem; }
+#wrapwrap > main hr { border-top: 2px dashed var(--mr-stitch); opacity: 1; }
+
+/* ---- buttons: little stamped tabs ---- */
+.btn-primary, #wrapwrap > main .btn-primary {
+  background-color: var(--mr-orange); border: 2px solid var(--mr-plum-deep); color: #fff; text-transform: uppercase; letter-spacing: .06em;
+  border-radius: .35rem; box-shadow: 3px 3px 0 var(--mr-plum-deep); transition: transform .08s, box-shadow .08s;
+}
+.btn-primary:hover { background-color: #c85c16; border-color: var(--mr-plum-deep); color: #fff; }
+.btn-primary:active, .btn-primary:focus-visible { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--mr-plum-deep); }
+.btn-secondary, #wrapwrap > main .btn-secondary { background: var(--mr-plum); border: 2px solid var(--mr-plum-deep); color: var(--mr-cream); border-radius: .35rem; text-transform: uppercase; letter-spacing: .06em; }
+
+/* ---- menus: dark and cream, not white ---- */
+.dropdown-menu, .o_mega_menu, .o_mega_menu .dropdown-menu { background-color: var(--mr-plum); color: var(--mr-cream); border: 0; border-top: 3px solid var(--mr-orange); box-shadow: 0 10px 24px rgba(0, 0, 0, .35); }
+.o_mega_menu h1, .o_mega_menu h2, .o_mega_menu h3, .o_mega_menu h4, .o_mega_menu h5, .o_mega_menu h6, .o_mega_menu .s_mega_menu_title { color: var(--mr-cream); border-bottom: 2px solid var(--mr-orange); }
+.dropdown-menu .dropdown-item, .o_mega_menu a, .o_mega_menu .nav-link { color: var(--mr-cream); }
+.dropdown-menu .dropdown-item:hover, .dropdown-menu .dropdown-item:focus, .o_mega_menu a:hover, .o_mega_menu .nav-link:hover { background: var(--mr-plum-deep); color: var(--mr-orange); }
+.o_mega_menu .o_cc1, .o_mega_menu .o_cc { background-color: transparent; --o-cc-bg: transparent; color: var(--mr-cream); }
+
+/* ---- header and footer bands ---- */
+#wrapwrap > header { border-bottom: 3px solid var(--mr-orange); }
+#wrapwrap > footer, #wrapwrap > footer .o_cc { background-color: var(--mr-plum-deep); color: var(--mr-cream); }
+#wrapwrap > footer { border-top: 3px solid var(--mr-orange); }
+#wrapwrap > footer a { color: var(--mr-blue); }
+#wrapwrap > footer a:hover { color: var(--mr-orange); }
+
+/* ---- forms and pagination, so they match ---- */
+#wrapwrap > main .form-control, #wrapwrap > main .form-select { background-color: #fffaf0; border: 2px solid var(--mr-stitch); }
+#wrapwrap > main .page-link { background: #fbf5e6; color: var(--mr-plum); border-color: var(--mr-stitch); }
+#wrapwrap > main .page-item.active .page-link { background: var(--mr-plum); border-color: var(--mr-plum); color: var(--mr-cream); }
+
+/* ---- fonts (loaded in the site's head code): stencil headlines, slab body, tall gothic for menus and buttons ---- */
+:root {
+  --mr-font-head: "Stardos Stencil", "Arial Narrow", Impact, sans-serif;
+  --mr-font-body: "Roboto Slab", Georgia, "Times New Roman", serif;
+  --mr-font-ui: "League Gothic", "Arial Narrow", Impact, sans-serif;
+  --bs-body-font-family: var(--mr-font-body);
+}
+body, #wrapwrap, #wrapwrap > main { font-family: var(--mr-font-body); }
+h1, h2, h3, h4, .h1, .h2, .h3, .h4, .display-1, .display-2, .display-3, .display-4 {
+  font-family: var(--mr-font-head); font-weight: 700; text-transform: uppercase; letter-spacing: .01em; text-wrap: balance;
+}
+h5, h6, .h5, .h6 { font-family: var(--mr-font-body); font-weight: 700; }   /* stencil gets hard to read when small */
+#top_menu .nav-link, #top_menu .dropdown-item, header .nav-link, .o_mega_menu a, .o_mega_menu h5, .o_mega_menu h6, .dropdown-menu .dropdown-item,
+.btn, .page-link, #wrapwrap > footer h5, #wrapwrap > footer h6, .breadcrumb {
+  font-family: var(--mr-font-ui); text-transform: uppercase; letter-spacing: .07em; font-weight: 400;
+}
+#top_menu .nav-link, header .nav-link, .o_mega_menu a, .dropdown-menu .dropdown-item, .btn { font-size: 1.25rem; line-height: 1.2; }
+.o_mega_menu h5, .o_mega_menu h6 { font-size: 1.6rem; }
+.btn-primary, .btn-secondary { padding-top: .45rem; padding-bottom: .35rem; }   /* tall narrow capitals sit a touch high; this evens them out */
+code, pre, kbd, samp { font-family: ui-monospace, "Courier Prime", Menlo, Consolas, monospace; }
+
+/* ---- the badge page ---- */
+#mr-badges-app .mrb-card { background-color: #fbf5e6; border: 2px dashed var(--mr-stitch); color: var(--mr-ink); }
+#mr-badges-app .mrb-msg { border: 2px dashed var(--mr-stitch); }
