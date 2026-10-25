@@ -29,10 +29,13 @@
 /* ---- cards, product tiles, filter boxes: paper clippings with stitching ---- */
 #wrapwrap > main .card, #wrapwrap > main .oe_product_cart, #wrapwrap > main .o_wsale_product_information,
 .mrb-card, #wrapwrap > main .o_mr_card {
-  background-color: #fbf5e6; border: 2px dashed var(--mr-stitch); border-radius: .5rem;
-  box-shadow: 0 2px 0 rgba(71, 43, 68, .18); outline: 1px solid rgba(251, 245, 230, .9); outline-offset: -6px;
+  background-color: #fbf5e6; border: 2px dashed var(--mr-stitch); border-radius: .5rem; box-shadow: none; outline: 0;
 }
-#wrapwrap > main .oe_product_cart:hover, #wrapwrap > main .card:hover { transform: translateY(-2px); transition: transform .15s ease-out; }
+/* room to breathe: wider gaps between cards and more padding inside them */
+#wrapwrap > main .row { --bs-gutter-x: 2rem; --bs-gutter-y: 2rem; }
+#wrapwrap > main .card-body { padding: 1.25rem 1.4rem 1.5rem; }
+#wrapwrap > main .o_wsale_product_information { padding: 1rem 1.25rem 1.4rem; }
+#wrapwrap > main .oe_product_cart { margin-bottom: .5rem; }
 #wrapwrap > main .o_wsale_product_information { border-top: 0; border-radius: 0 0 .5rem .5rem; }
 #wrapwrap > main hr { border-top: 2px dashed var(--mr-stitch); opacity: 1; }
 
