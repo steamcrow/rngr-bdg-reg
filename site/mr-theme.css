@@ -82,6 +82,12 @@
   color: var(--mr-cream) !important; background: transparent !important; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px; text-decoration-color: var(--mr-orange);
 }
 
+/* the logged-in user's drop-down (Apps, My Account, Logout): light cream text on the plum panel, orange on roll-over */
+.js_usermenu :is(a, .dropdown-item, span, .dropdown-item-text), header .o_no_autohide_item .dropdown-menu :is(a, .dropdown-item, span) { color: var(--mr-cream) !important; opacity: 1 !important; }
+.js_usermenu :is(a, .dropdown-item):hover, .js_usermenu :is(a, .dropdown-item):focus-visible, header .o_no_autohide_item .dropdown-menu :is(a, .dropdown-item):hover { color: var(--mr-orange-hi) !important; text-decoration: none; }
+.js_usermenu .dropdown-divider { border-top-color: rgba(246, 236, 217, .25); opacity: 1; }
+.js_usermenu .dropdown-item i, .js_usermenu .dropdown-item .fa, .js_usermenu .dropdown-item svg { color: var(--mr-orange-hi) !important; }
+
 /* menu hierarchy: column titles are cream (they are links too), the links beneath them are orange */
 .o_mega_menu h4 :is(a, .nav-link, span, .text-black), .o_mega_menu h4 { color: var(--mr-cream) !important; }
 .o_mega_menu h4 a:hover, .o_mega_menu h4 a:focus-visible { color: var(--mr-orange-hi) !important; text-decoration: underline; text-decoration-color: var(--mr-orange); text-underline-offset: 5px; }
