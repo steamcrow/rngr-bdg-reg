@@ -14,8 +14,18 @@
   --mr-grey: #6b6f73;
   --mr-stitch: rgba(71, 43, 68, .45);
   --mr-line: #aebfd1;       /* dashed card frames: Steam Crow light blue */
+  --mr-card-bg: #fbf5e6;    /* paper clipping color for cards */
+  --mr-input-bg: #fffaf0;
   --mr-orange-hi: #f2842f;  /* menu links on plum: a little brighter than the button orange */
 }
+
+/* ---- imported pages: ignore the stray line breaks the old WordPress pages carried after every list item and heading ---- */
+#wrapwrap > main :is(ul, ol) > br,
+#wrapwrap > main :is(h1, h2, h3, h4, h5, h6, p, ul, ol, li, div, section, blockquote, table, hr, figure) + br { display: none; }
+#wrapwrap > main :is(ul, ol) { padding-left: 1.6rem; margin-bottom: 1.25rem; }
+#wrapwrap > main li { margin-bottom: .45rem; }
+#wrapwrap > main :is(h1, h2, h3, h4) { margin-top: 1.6rem; margin-bottom: .6rem; }
+#wrapwrap > main :is(h1, h2, h3, h4):first-child { margin-top: 0; }
 
 /* ---- paper: every page that used to be white ---- */
 #wrapwrap > main { background-color: var(--mr-paper); color: var(--mr-ink); }
@@ -53,7 +63,8 @@
 /* ---- menus: plum panel, cream headings, orange links that turn cream on hover ---- */
 .dropdown-menu, .o_mega_menu, .o_mega_menu .dropdown-menu { background-color: var(--mr-plum); color: var(--mr-cream); border: 0; border-top: 3px solid var(--mr-orange); box-shadow: 0 10px 24px rgba(0, 0, 0, .35); }
 .o_mega_menu .o_cc1, .o_mega_menu .o_cc { background-color: transparent; --o-cc-bg: transparent; color: var(--mr-cream); }
-.o_mega_menu :is(h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6) { color: var(--mr-cream) !important; border-bottom: 0 !important; }   /* the menu already draws its own orange rule */
+.o_mega_menu :is(h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6), .o_mega_menu .text-black, .o_mega_menu .text-dark, .o_mega_menu .text-body { color: var(--mr-cream) !important; }
+.o_mega_menu :is(h1, h2, h3, h4, h5, h6, .h5) { border-bottom: 0 !important; }   /* the menu already draws its own orange rule */   /* the menu already draws its own orange rule */
 .o_mega_menu a, .o_mega_menu .nav-link, .dropdown-menu .dropdown-item {
   color: var(--mr-orange-hi) !important; background: transparent !important; opacity: 1 !important; transition: color .12s;
 }

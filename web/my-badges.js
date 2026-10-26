@@ -35,29 +35,33 @@
   function css() {
     if (document.getElementById("mr-badges-css")) return;
     var s = document.createElement("style"); s.id = "mr-badges-css";
+    /* layout only: colors and fonts come from the site theme through variables, with plain fallbacks if the theme is not loaded */
     s.textContent =
-      "#mr-badges-app{font-size:1.1rem;line-height:1.5;max-width:1100px;margin:0 auto}" +
-      "#mr-badges-app .mrb-top{display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;justify-content:space-between;margin-bottom:1rem}" +
-      "#mr-badges-app .mrb-total{font-size:1.4rem;font-weight:700}" +
-      "#mr-badges-app form{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0}" +
-      "#mr-badges-app input[type=text],#mr-badges-app input[type=search]{flex:1 1 16rem;padding:.7rem .9rem;font-size:1.1rem;border:2px solid #8a7a88;border-radius:.4rem}" +
-      "#mr-badges-app button{padding:.7rem 1.2rem;font-size:1.1rem;border-radius:.4rem;border:0;background:var(--primary,#c8693a);color:#fff;cursor:pointer}" +
+      "#mr-badges-app{font-size:1.05rem;line-height:1.6;max-width:1100px;margin:0 auto}" +
+      "#mr-badges-app .mrb-panel{border:2px dashed var(--mr-line,#b9aab6);background:var(--mr-card-bg,#fff);border-radius:.5rem;padding:1.3rem 1.5rem 1.4rem;margin-bottom:1.5rem}" +
+      "#mr-badges-app .mrb-label{font-family:var(--mr-font-ui,inherit);text-transform:uppercase;letter-spacing:.08em;font-size:1.5rem;line-height:1.1;margin:0 0 .8rem}" +
+      "#mr-badges-app form{display:flex;flex-wrap:wrap;gap:.7rem;margin:0}" +
+      "#mr-badges-app .mrb-panel input[type=text]{flex:1 1 16rem;min-width:0;padding:.7rem .9rem;font-size:1.1rem;border:2px solid var(--mr-stitch,#8a7a88);border-radius:.4rem;background:var(--mr-input-bg,#fff)}" +
       "#mr-badges-app button[disabled]{opacity:.55;cursor:wait}" +
-      "#mr-badges-app .mrb-msg{min-height:1.5rem;padding:.6rem .9rem;border-radius:.4rem;margin-bottom:1rem}" +
+      "#mr-badges-app .mrb-msg{margin:1rem 0 0;padding:.7rem 1rem;border-radius:.4rem}" +
+      "#mr-badges-app .mrb-msg:empty{display:none}" +
       "#mr-badges-app .mrb-msg.ok{background:#e3f4e1}#mr-badges-app .mrb-msg.warn{background:#fff1d6}#mr-badges-app .mrb-msg.bad{background:#fbe0e0}" +
-      "#mr-badges-app .mrb-msg img{width:72px;height:72px;object-fit:contain;vertical-align:middle;margin-right:.8rem}" +
-      "#mr-badges-app .mrb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem}" +
-      "#mr-badges-app .mrb-card{border:1px solid #c9bfc7;border-radius:.6rem;padding:.8rem;text-align:center;background:#fff;color:#222}" +
-      "#mr-badges-app .mrb-card img{width:100%;max-width:120px;height:120px;object-fit:contain}" +
-      "#mr-badges-app .mrb-card b{display:block;margin-top:.4rem;font-size:1rem}" +
-      "#mr-badges-app .mrb-card small{color:#555}" +
+      "#mr-badges-app .mrb-top{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between;margin:2rem 0 1.2rem}" +
+      "#mr-badges-app .mrb-top input{flex:1 1 14rem;max-width:22rem;padding:.55rem .8rem;border:2px solid var(--mr-stitch,#8a7a88);border-radius:.4rem;background:var(--mr-input-bg,#fff)}" +
+      "#mr-badges-app .mrb-total{font-family:var(--mr-font-ui,inherit);text-transform:uppercase;letter-spacing:.06em;font-size:1.9rem;line-height:1}" +
+      "#mr-badges-app .mrb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1.75rem}" +
+      "#mr-badges-app .mrb-card{border:2px dashed var(--mr-line,#c9bfc7);border-radius:.5rem;padding:1rem .8rem 1.1rem;text-align:center;background:var(--mr-card-bg,#fff);color:var(--mr-ink,#222)}" +
+      "#mr-badges-app .mrb-card img{width:100%;max-width:130px;height:130px;object-fit:contain}" +
+      "#mr-badges-app .mrb-card b{display:block;margin-top:.5rem;font-size:1rem;line-height:1.25}" +
+      "#mr-badges-app .mrb-card small{opacity:.75}" +
+      "#mr-badges-app .mrb-more{margin-top:1.5rem}" +
       /* success: conjured badge magic (about 1.3 seconds) */
       "#mr-badges-app .mrb-msg.ok{text-align:center;padding:1rem}" +
       "#mr-badges-app .mrb-stage{position:relative;width:150px;height:150px;margin:0 auto .3rem;display:flex;align-items:center;justify-content:center}" +
       "#mr-badges-app .mrb-aura{position:absolute;inset:-6px;border-radius:50%;background:conic-gradient(#7b2ff7,#00d4ff,#ff4fd8,#ffd84f,#7b2ff7);filter:blur(12px);opacity:0;animation:mrb-aura 1.3s ease-out forwards}" +
       "#mr-badges-app .mrb-msg .mrb-stage img{position:relative;width:120px;height:120px;margin:0;opacity:0;transform:scale(.55);animation:mrb-pop .45s .4s cubic-bezier(.2,1.3,.4,1) forwards}" +
       "#mr-badges-app .mrb-spark{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;border-radius:50%;background:#ffe27a;box-shadow:0 0 8px 2px #fff3b0;opacity:0;animation:mrb-spark .9s .35s ease-out forwards}" +
-      "#mr-badges-app .mrb-win{font-size:1.7rem;font-weight:800;opacity:0;animation:mrb-pop .3s .85s ease-out forwards}" +
+      "#mr-badges-app .mrb-win{font-family:var(--mr-font-head,inherit);text-transform:uppercase;font-size:1.9rem;font-weight:800;opacity:0;animation:mrb-pop .3s .85s ease-out forwards}" +
       "#mr-badges-app .mrb-sub{opacity:0;animation:mrb-pop .3s 1s ease-out forwards}" +
       "@keyframes mrb-aura{0%{opacity:0;transform:scale(.3) rotate(0)}35%{opacity:.95}100%{opacity:.0;transform:scale(1.35) rotate(220deg)}}" +
       "@keyframes mrb-pop{to{opacity:1;transform:scale(1)}}" +
@@ -142,18 +146,17 @@
   }
   function build() {
     css(); ROOT.textContent = "";
-    var form = h("form", { novalidate: "novalidate" }, [
-      h("input", { type: "text", name: "code", placeholder: "Type your badge code", autocomplete: "off", autocapitalize: "none", autocorrect: "off", spellcheck: "false", "aria-label": "Badge code", maxlength: "64" }),
-      h("button", { type: "submit", text: "Register badge" })]);
+    var input = h("input", { type: "text", name: "code", placeholder: "Type your badge code", autocomplete: "off", autocapitalize: "none", autocorrect: "off", spellcheck: "false", "aria-label": "Badge code", maxlength: "64" });
+    var form = h("form", { novalidate: "novalidate" }, [input, h("button", { type: "submit", class: "btn btn-primary", text: "Register badge" })]);
     form.addEventListener("submit", submit);
+    var msg = h("div", { class: "mrb-msg", "aria-live": "polite", role: "status" });
+    ROOT.appendChild(h("div", { class: "mrb-panel" }, [h("h2", { class: "mrb-label", text: "Enter a badge code" }), form, msg]));
     var search = h("input", { type: "search", placeholder: "Search my badges", "aria-label": "Search my badges" });
     search.addEventListener("input", function () { state.filter = search.value; state.shown = PAGE; render(); });
-    var more = h("button", { type: "button", class: "mrb-more", text: "Show more" }); more.style.display = "none";
+    var more = h("button", { type: "button", class: "btn btn-secondary mrb-more", text: "Show more" }); more.style.display = "none";
     more.addEventListener("click", function () { state.shown += PAGE; render(); });
-    ROOT.appendChild(h("div", { class: "mrb-top" }, [h("div", { class: "mrb-total", text: "" }), search]));
-    ROOT.appendChild(form);
-    var msg = h("div", { class: "mrb-msg", "aria-live": "polite", role: "status" }); ROOT.appendChild(msg);
-    ROOT.appendChild(h("div", { class: "mrb-grid" })); ROOT.appendChild(more);
+    var top = h("div", { class: "mrb-top", id: "my-collection" }, [h("div", { class: "mrb-total", text: "" }), search]);
+    ROOT.appendChild(top); ROOT.appendChild(h("div", { class: "mrb-grid" })); ROOT.appendChild(more);
     return load();
   }
   whoAmI().then(function (s) {
