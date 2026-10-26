@@ -107,7 +107,7 @@
 #wrapwrap :is(.form-control, .form-select, input, textarea, select):focus { border-color: var(--mr-orange); box-shadow: 0 0 0 .2rem rgba(220, 107, 33, .28); outline: 0; }
 #wrapwrap :is(input, textarea)::placeholder { color: #8a7a74; }
 #wrapwrap > main .page-link { background: var(--mr-card-bg); color: var(--mr-plum); border-color: var(--mr-stitch); }
-#wrapwrap > main .page-item.active .page-link { background: var(--mr-plum); border-color: var(--mr-plum); color: var(--mr-cream); }
+#wrapwrap > main .page-item.active .page-link { background: var(--mr-plum); border-color: var(--mr-plum); color: #fff; }
 
 /* ---- fonts (loaded in the site's head code): stencil headlines, slab body, tall gothic for menus and buttons ---- */
 :root {
@@ -147,5 +147,9 @@ html:not(.mr-badge-dir) #wrapwrap :is(.o_wsale_product_grid_wrapper, .oe_product
   --bs-btn-color: var(--mr-ink); --bs-btn-hover-color: var(--mr-orange-ink); --bs-btn-active-color: var(--mr-ink); --bs-link-color: var(--mr-ink); color: var(--mr-ink);
 }
 #wrapwrap > main :is(.btn-light, .btn-link, .btn-outline-secondary, .dropdown-toggle):not(.btn-primary):not(.btn-secondary):hover { color: var(--mr-orange-ink); }
-#wrapwrap > main :is(.o_wsale_filmstip, .o_wsale_filmstip_wrapper, .o_wsale_products_main_row) :is(a, .nav-link, .btn):not(.active) { color: var(--mr-ink); }
+#wrapwrap > main :is(.o_wsale_filmstip, .o_wsale_filmstip_wrapper) :is(a, .nav-link, .btn):not(.active) { color: var(--mr-ink); }
 #wrapwrap > main :is(.o_wsale_filmstip, .o_wsale_filmstip_wrapper) :is(a, .nav-link, .btn):hover { color: var(--mr-orange-ink); }
+
+/* ---- button text and icons are always white ---- */
+#wrapwrap :is(.btn-primary, .btn-secondary), #wrapwrap :is(.btn-primary, .btn-secondary) :is(span, i, svg, .fa) { color: #fff !important; }
+#wrapwrap > main .page-item.active .page-link, #wrapwrap > main .page-item.active .page-link * { color: #fff !important; }
