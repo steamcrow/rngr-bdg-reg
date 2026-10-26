@@ -51,7 +51,10 @@ export default {
     ctx.waitUntil(processClaim(env, id).catch((e) => console.log("claim error", id, e.message)));
     return new Response("ok");
   },
-  async scheduled(event, env, ctx) { ctx.waitUntil(sweep(env)); },
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(sweep(env));
+    if (new Date(event.scheduledTime).getUTCMinutes() % 15 === 0) ctx.waitUntil(syncRetired(env).catch((e) => console.log("retired sync error", e.message)));   // every 15 minutes
+  },
 };
 
 export async function sweep(env) {
@@ -62,6 +65,24 @@ export async function sweep(env) {
   for (const id of stale) await processClaim(env, id, true).catch((e) => console.log("sweep error", id, e.message));
   const nicks = await o("x_badge_nick", "search", [[["x_status", "=", "pending"], ["create_date", "<", odooTime(Date.now() - 8000)]]], { limit: 20 }).catch(() => []);
   for (const id of nicks) await processNick(env, id).catch((e) => console.log("sweep nick error", id, e.message));
+}
+
+// ---- RETIRED ribbon: a badge with no stock left wears the RETIRED ribbon; when stock comes back the ribbon comes off ----
+// (The site theme hides ribboned products everywhere except the Spirit Badges directory.)
+export async function syncRetired(env) {
+  const o = odoo(env);
+  const ribbons = await o("product.ribbon", "search_read", [[]], { fields: ["name"] });
+  const rib = ribbons.find((r) => String(r.name || "").replace(/<[^>]*>/g, "").trim().toUpperCase() === "RETIRED");
+  if (!rib) return { skipped: "no RETIRED ribbon" };
+  const meta = await o("product.template", "fields_get", [], { attributes: ["type", "relation"] });
+  const field = Object.keys(meta).find((k) => meta[k].type === "many2one" && meta[k].relation === "product.ribbon");
+  if (!field) return { skipped: "no ribbon field" };
+  const badge = [["x_studio_badge_secret_code", "!=", false], ["is_storable", "=", true]];
+  const toRetire = await o("product.template", "search", [[...badge, ["qty_available", "<=", 0], [field, "!=", rib.id]]], { limit: 200 });
+  if (toRetire.length) await o("product.template", "write", [toRetire, { [field]: rib.id }]);
+  const toRestore = await o("product.template", "search", [[...badge, ["qty_available", ">", 0], [field, "=", rib.id]]], { limit: 200 });
+  if (toRestore.length) await o("product.template", "write", [toRestore, { [field]: false }]);
+  return { retired: toRetire.length, restored: toRestore.length };
 }
 
 // ---- Ranger Nicknames: a Ranger asks for a name (a request record), we check it and, if it passes, save it on their profile ----
