@@ -3,9 +3,11 @@
    because a picture named in an outside stylesheet would be looked for on the wrong website.
    Colors: change them here and nowhere else. */
 :root {
+  --bs-black: #2b1d1a; --bs-black-rgb: 43, 29, 26;          /* Odoo's "black" becomes dark brown everywhere */
+  --bs-body-color: #2b1d1a; --bs-body-color-rgb: 43, 29, 26; --bs-heading-color: #2b1d1a;
   --mr-plum: #472b44;       /* header, footer, menus (your current plum-brown) */
   --mr-plum-deep: #33203a;  /* footer, hover */
-  --mr-ink: #2b1d1a;        /* text on paper */
+  --mr-ink: #2b1d1a;        /* text on paper: dark brown, never black */
   --mr-cream: #f6ecd9;      /* text on dark, light paper */
   --mr-paper: #f3e7cf;      /* paper color if the picture is slow to load */
   --mr-orange: #dc6b21;     /* your accent, for dark backgrounds and buttons */
@@ -13,9 +15,10 @@
   --mr-blue: #aebfd1;       /* Steam Crow blue, used sparingly */
   --mr-grey: #6b6f73;
   --mr-stitch: rgba(71, 43, 68, .45);
-  --mr-line: #aebfd1;       /* dashed card frames: Steam Crow light blue */
+  --mr-line: #dc6b21;       /* dashed card frames: the action orange */
   --mr-card-bg: #ffffff;    /* card fill: white, so cards stand forward from the parchment */
-  --mr-input-bg: #fffaf0;
+  --mr-input-bg: #ffffff;   /* fields are white inside */
+  --mr-field-line: #dc6b21; /* ... with an orange outline */
   --mr-orange-hi: #f2842f;  /* menu links on plum: a little brighter than the button orange */
 }
 
@@ -29,6 +32,8 @@
 
 /* ---- paper: every page that used to be white ---- */
 #wrapwrap > main { background-color: var(--mr-paper); color: var(--mr-ink); }
+#wrapwrap > main .o_cc1 { color: var(--mr-ink); --o-cc-color: var(--mr-ink); --o-cc-headings-color: var(--mr-ink); }
+#wrapwrap > main .text-black, #wrapwrap > main .text-dark { color: var(--mr-ink) !important; }
 #wrapwrap > main .o_cc1:not(.oe_img_bg):not([style*="background-image"]) { background-color: transparent; --o-cc-bg: transparent; }
 #wrapwrap > main { line-height: 1.7; }
 #wrapwrap > main .container, #wrapwrap > main .container-fluid { max-width: 1140px; }
@@ -50,6 +55,11 @@
 #wrapwrap > main .oe_product_cart { margin-bottom: .5rem; }
 #wrapwrap > main .o_wsale_product_information { border: 0; background: transparent; box-shadow: none; outline: 0; }
 #wrapwrap > main hr { border-top: 2px dashed var(--mr-line); opacity: 1; }
+
+/* ---- cards lift a little when you roll over them ---- */
+#wrapwrap > main :is(.card, .oe_product_cart), #mr-badges-app .mrb-card { transition: transform .15s ease-out; }
+#wrapwrap > main :is(.card, .oe_product_cart):hover, #mr-badges-app .mrb-card:hover { transform: translateY(-4px); }
+@media (prefers-reduced-motion: reduce) { #wrapwrap > main :is(.card, .oe_product_cart):hover, #mr-badges-app .mrb-card:hover { transform: none; } }
 
 /* ---- buttons: little stamped tabs ---- */
 .btn-primary, #wrapwrap > main .btn-primary {
@@ -84,8 +94,12 @@
 #wrapwrap > footer a { color: var(--mr-blue); }
 #wrapwrap > footer a:hover { color: var(--mr-orange); }
 
-/* ---- forms and pagination, so they match ---- */
-#wrapwrap > main .form-control, #wrapwrap > main .form-select { background-color: #fffaf0; border: 2px solid var(--mr-stitch); }
+/* ---- forms and pagination, so they match: white fields, orange outline ---- */
+#wrapwrap :is(.form-control, .form-select, input[type=text], input[type=search], input[type=email], input[type=password], input[type=number], textarea, select) {
+  background-color: var(--mr-input-bg); border: 2px solid var(--mr-field-line); border-radius: .4rem; color: var(--mr-ink);
+}
+#wrapwrap :is(.form-control, .form-select, input, textarea, select):focus { border-color: var(--mr-orange); box-shadow: 0 0 0 .2rem rgba(220, 107, 33, .28); outline: 0; }
+#wrapwrap :is(input, textarea)::placeholder { color: #8a7a74; }
 #wrapwrap > main .page-link { background: var(--mr-card-bg); color: var(--mr-plum); border-color: var(--mr-stitch); }
 #wrapwrap > main .page-item.active .page-link { background: var(--mr-plum); border-color: var(--mr-plum); color: var(--mr-cream); }
 
@@ -112,4 +126,5 @@ code, pre, kbd, samp { font-family: ui-monospace, "Courier Prime", Menlo, Consol
 
 /* ---- the badge page ---- */
 #mr-badges-app .mrb-card { background-color: var(--mr-card-bg); border: 2px dashed var(--mr-line); color: var(--mr-ink); }
+#mr-badges-app .mrb-panel { border-color: var(--mr-line); }
 #mr-badges-app .mrb-msg { border: 2px dashed var(--mr-line); }

@@ -41,13 +41,13 @@
       "#mr-badges-app .mrb-panel{border:2px dashed var(--mr-line,#b9aab6);background:var(--mr-card-bg,#fff);border-radius:.5rem;padding:1.3rem 1.5rem 1.4rem;margin-bottom:1.5rem}" +
       "#mr-badges-app .mrb-label{font-family:var(--mr-font-ui,inherit);text-transform:uppercase;letter-spacing:.08em;font-size:1.5rem;line-height:1.1;margin:0 0 .8rem}" +
       "#mr-badges-app form{display:flex;flex-wrap:wrap;gap:.7rem;margin:0}" +
-      "#mr-badges-app .mrb-panel input[type=text]{flex:1 1 16rem;min-width:0;padding:.7rem .9rem;font-size:1.1rem;border:2px solid var(--mr-stitch,#8a7a88);border-radius:.4rem;background:var(--mr-input-bg,#fff)}" +
+      "#mr-badges-app .mrb-panel input[type=text]{flex:1 1 16rem;min-width:0;padding:.7rem .9rem;font-size:1.1rem;border:2px solid var(--mr-field-line,#8a7a88);border-radius:.4rem;background:var(--mr-input-bg,#fff)}" +
       "#mr-badges-app button[disabled]{opacity:.55;cursor:wait}" +
       "#mr-badges-app .mrb-msg{margin:1rem 0 0;padding:.7rem 1rem;border-radius:.4rem}" +
       "#mr-badges-app .mrb-msg:empty{display:none}" +
       "#mr-badges-app .mrb-msg.ok{background:#e3f4e1}#mr-badges-app .mrb-msg.warn{background:#fff1d6}#mr-badges-app .mrb-msg.bad{background:#fbe0e0}" +
       "#mr-badges-app .mrb-top{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between;margin:2rem 0 1.2rem}" +
-      "#mr-badges-app .mrb-top input{flex:1 1 14rem;max-width:22rem;padding:.55rem .8rem;border:2px solid var(--mr-stitch,#8a7a88);border-radius:.4rem;background:var(--mr-input-bg,#fff)}" +
+      "#mr-badges-app .mrb-top input{flex:1 1 14rem;max-width:22rem;padding:.55rem .8rem;border:2px solid var(--mr-field-line,#8a7a88);border-radius:.4rem;background:var(--mr-input-bg,#fff)}" +
       "#mr-badges-app .mrb-total{font-family:var(--mr-font-ui,inherit);text-transform:uppercase;letter-spacing:.06em;font-size:1.9rem;line-height:1}" +
       "#mr-badges-app .mrb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1.75rem}" +
       "#mr-badges-app .mrb-card{border:2px dashed var(--mr-line,#c9bfc7);border-radius:.5rem;padding:1rem .8rem 1.1rem;text-align:center;background:var(--mr-card-bg,#fff);color:var(--mr-ink,#222)}" +
