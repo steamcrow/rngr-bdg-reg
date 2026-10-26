@@ -141,3 +141,11 @@ code, pre, kbd, samp { font-family: ui-monospace, "Courier Prime", Menlo, Consol
 /* ---- RETIRED badges: they wear a dark-red RETIRED ribbon. Hidden in the shop, search and other categories; the Spirit Badges directory still shows them. ---- */
 html:not(.mr-badge-dir) #wrapwrap :is(.o_wsale_product_grid_wrapper, .oe_product):has([style*="7a2e2e" i]) { display: none; }
 .o_ribbon { font-family: var(--mr-font-ui); letter-spacing: .08em; text-transform: uppercase; }
+
+/* ---- shop controls (Pricelist, Sort by, category pills): dark brown like the rest of the text, never black ---- */
+#wrapwrap > main :is(.btn-light, .btn-link, .btn-outline-secondary, .dropdown-toggle):not(.btn-primary):not(.btn-secondary) {
+  --bs-btn-color: var(--mr-ink); --bs-btn-hover-color: var(--mr-orange-ink); --bs-btn-active-color: var(--mr-ink); --bs-link-color: var(--mr-ink); color: var(--mr-ink);
+}
+#wrapwrap > main :is(.btn-light, .btn-link, .btn-outline-secondary, .dropdown-toggle):not(.btn-primary):not(.btn-secondary):hover { color: var(--mr-orange-ink); }
+#wrapwrap > main :is(.o_wsale_filmstip, .o_wsale_filmstip_wrapper, .o_wsale_products_main_row) :is(a, .nav-link, .btn):not(.active) { color: var(--mr-ink); }
+#wrapwrap > main :is(.o_wsale_filmstip, .o_wsale_filmstip_wrapper) :is(a, .nav-link, .btn):hover { color: var(--mr-orange-ink); }
