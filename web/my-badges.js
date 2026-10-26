@@ -55,6 +55,7 @@
       "#mr-badges-app .mrb-card b{display:block;margin-top:.5rem;font-size:1rem;line-height:1.25}" +
       "#mr-badges-app .mrb-card small{opacity:.75}" +
       "#mr-badges-app .mrb-more{margin-top:1.5rem}" +
+      "#mr-badges-app details.mrb-panel>summary{list-style-position:inside}" +
       "#mr-badges-app .mrn-row{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center}" +
       "#mr-badges-app .mrn-check{display:flex;gap:.5rem;align-items:center;margin:.8rem 0 0}" +
       "#mr-badges-app .mrn-check input{width:1.2rem;height:1.2rem;accent-color:var(--mr-orange,#dc6b21)}" +
@@ -119,6 +120,46 @@
     var more = ROOT.querySelector(".mrb-more");
     more.style.display = list.length > state.shown ? "" : "none";
     if (!list.length) grid.appendChild(h("p", { text: state.regs.length ? "No badges match that search." : "No badges yet. Enter a badge code above to add your first one!" }));
+  }
+  // ---- Reclaim old badges: ask for an emailed link, then redeem it. The checker (Worker) does all the checking. ----
+  function reclaimPanel() {
+    var qs = new URLSearchParams(location.search), tok = (qs.get("reclaim") || "").trim();
+    return rpc("x_badge_reclaim", "search_read", [[]], { fields: ["x_status"], limit: 1 }).then(function () {
+      var input = h("input", { type: "text", name: "oldname", maxlength: "120", autocomplete: "off", spellcheck: "false", placeholder: "Old username or email", "aria-label": "Old username or email" });
+      var btn = h("button", { type: "submit", class: "btn btn-primary", text: "Email me a link" });
+      var msg = h("div", { class: "mrn-msg", "aria-live": "polite", role: "status" });
+      var form = h("form", { novalidate: "novalidate" }, [h("div", { class: "mrn-row" }, [input, btn]), msg]); form.style.display = "block";
+      var busy = false;
+      function sayR(kind, text) { msg.className = "mrn-msg " + kind; msg.textContent = text; }
+      function pollR(id, n) {
+        return rpc("x_badge_reclaim", "read", [[id]], { fields: ["x_status", "x_message"] }).then(function (r) {
+          var c = r[0] || {};
+          if (c.x_status === "pending" || c.x_status === "processing") {
+            if (n >= POLL_MAX) { sayR("warn", "Still working... please refresh in a minute."); return; }
+            return new Promise(function (ok) { setTimeout(ok, POLL_MS); }).then(function () { return pollR(id, n + 1); });
+          }
+          var kind = c.x_status === "restored" ? "ok" : c.x_status === "sent" ? "warn" : "bad";
+          sayR(kind, c.x_message || "Something went wrong. Please try again.");
+          if (c.x_status === "restored") return load();
+        });
+      }
+      function go(vals) {
+        if (busy) return Promise.resolve(); busy = true; btn.disabled = true; sayR("warn", "Checking...");
+        return rpc("x_badge_reclaim", "create", [vals]).then(function (id) { return pollR(id, 0); })
+          .catch(function () { sayR("bad", "We couldn't reach the badge desk. Nothing was changed. Please try again."); })
+          .then(function () { busy = false; btn.disabled = false; });
+      }
+      form.addEventListener("submit", function (ev) { ev.preventDefault(); var v = input.value.trim(); if (v.length < 3) { sayR("warn", "Please type your old username or email."); return; } go({ x_lookup: v }); });
+      var help = h("ul", { class: "mrn-help" }, [h("li", { text: "Had a Monster Rangers account on the old site? Type its username, or the email address you used there." }),
+        h("li", { text: "We email a one-time link to the address on that old account. Open it here, while you're logged in, and your old badges are added to this collection." }),
+        h("li", { text: "The link works once and expires after an hour. Can't get to that email any more? Contact Central Command and we'll help." })]);
+      var box = h("details", { class: "mrb-panel", id: "reclaim-badges" }, [h("summary", { class: "mrb-label", style: "cursor:pointer;margin:0", text: "Played before? Reclaim your old badges" }), h("div", { style: "margin-top:.8rem" }, [help, form])]);
+      var anchor = ROOT.querySelector(".mrb-top"); ROOT.insertBefore(box, anchor);
+      if (/^[0-9a-f]{48}$/.test(tok)) {
+        box.open = true; try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) { /* fine */ }
+        return go({ x_token: tok });
+      }
+    }).catch(function () { /* the reclaim tables are not installed on this site yet: show nothing */ });
   }
   // ---- Ranger Nickname: the public name for the Glory leaderboard. The checker (Worker) approves it; nothing here decides anything. ----
   function nickPanel() {
@@ -204,7 +245,7 @@
     more.addEventListener("click", function () { state.shown += PAGE; render(); });
     var top = h("div", { class: "mrb-top", id: "my-collection" }, [h("div", { class: "mrb-total", text: "" }), search]);
     ROOT.appendChild(top); ROOT.appendChild(h("div", { class: "mrb-grid" })); ROOT.appendChild(more);
-    return load().then(nickPanel);
+    return load().then(reclaimPanel).then(nickPanel);
   }
   whoAmI().then(function (s) {
     var loggedIn = s && s.uid && !s.is_public && !s.is_website_user;

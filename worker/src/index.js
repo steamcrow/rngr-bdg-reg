@@ -13,12 +13,18 @@ const NEW_MAX_FAILS_DAY = 6;    // new accounts: 6 wrong per 24 hours
 const NEW_GLOBAL_MAX = 60;      // if the whole site gets this many wrong codes in 10 minutes, NEW accounts are paused
 const GLOBAL_WINDOW_MIN = 10;   // (established Rangers are never affected, so a swarm of fake accounts can't block them)
 const SHOP_CATEGORIES = ["Everything", "all-products"];   // shop categories a RETIRED badge is taken out of
+const RECLAIM_MAX_PER_DAY = 5;       // reclaim requests per Ranger per 24 hours
+const RECLAIM_SENDS_PER_OLD_ACCOUNT = 3;   // links emailed for one old account per 24 hours
+const RECLAIM_LINK_MIN = 60;         // a link works for one hour
 const BOARD_SIZE = 100;         // Glory Leaderboard length
 const BOARD_CACHE_SEC = 300;    // the board is built once per 5 minutes and kept at Cloudflare's edge: visitors never touch Odoo
 const NICK_MAX_PER_DAY = 6;     // nickname save attempts per Ranger per 24 hours
 const NICK_RESERVED = ["admin", "administrator", "staff", "moderator", "mod", "support", "monsterrangers", "monsterranger", "steamcrow", "centralcommand", "official", "claude", "anthropic", "system", "odoo"];
 const NICK_BLOCKED = ["fuck", "shit", "cunt", "bitch", "nigg", "fagg", "retard", "nazi", "hitler", "whore", "porn", "kkk"];   // staff can also hide any row by ticking Blocked on the profile
 const MSG = {
+  reclaimSent: "If that matches an old Monster Rangers account, we've sent a link to the email address on it. The link works for one hour. Check your spam folder too.",
+  reclaimBad: "That link didn't work. It may have expired, or you may be logged in with a different account than the one that asked for it. Please ask for a new link.",
+  reclaimLimit: "That's a lot of tries today. Please try again tomorrow.",
   nickOk: "Saved! You'll appear on the Glory Leaderboard within about five minutes.",
   nickHidden: "Saved. You are hidden from the Glory Leaderboard.",
   nickBad: "Nicknames are 3 to 24 letters, numbers, spaces, dots or dashes, and must start and end with a letter or number.",
@@ -38,6 +44,13 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (request.method === "GET" && url.pathname === "/board") return board(request, env, ctx);
+    if (request.method === "POST" && url.pathname === `/reclaim/${env.HOOK_SECRET}`) {
+      let rb; try { rb = await request.json(); } catch { return new Response("bad request", { status: 400 }); }
+      const rid = parseInt(rb._id ?? rb.id, 10);
+      if (!rid) return new Response("bad request", { status: 400 });
+      ctx.waitUntil(processReclaim(env, rid).catch((e) => console.log("reclaim error", rid, e.message)));
+      return new Response("ok");
+    }
     if (request.method === "POST" && url.pathname === `/nick/${env.HOOK_SECRET}`) {
       let nb; try { nb = await request.json(); } catch { return new Response("bad request", { status: 400 }); }
       const nid = parseInt(nb._id ?? nb.id, 10);
@@ -64,6 +77,8 @@ export async function sweep(env) {
   for (const id of fresh) await processClaim(env, id).catch((e) => console.log("sweep error", id, e.message));
   const stale = await o("x_badge_claim", "search", [[["x_status", "=", "processing"], ["write_date", "<", odooTime(Date.now() - 120000)]]], { limit: 20 });
   for (const id of stale) await processClaim(env, id, true).catch((e) => console.log("sweep error", id, e.message));
+  const recl = await o("x_badge_reclaim", "search", [[["x_status", "=", "pending"], ["create_date", "<", odooTime(Date.now() - 8000)]]], { limit: 20 }).catch(() => []);
+  for (const id of recl) await processReclaim(env, id).catch((e) => console.log("sweep reclaim error", id, e.message));
   const nicks = await o("x_badge_nick", "search", [[["x_status", "=", "pending"], ["create_date", "<", odooTime(Date.now() - 8000)]]], { limit: 20 }).catch(() => []);
   for (const id of nicks) await processNick(env, id).catch((e) => console.log("sweep nick error", id, e.message));
 }
@@ -97,6 +112,81 @@ export async function syncRetired(env) {
     }
   }
   return { retired: toRetire.length, restored: toRestore.length, leftShop: left, backInShop: back };
+}
+
+// ---- Reclaiming old badges ----
+// Old history (members + which badges they unlocked) lives in Cloudflare D1, NOT in Odoo.
+// Step 1: a Ranger types an old username/email -> we email a one-time link to the address ON THE OLD ACCOUNT (never to anything they typed).
+// Step 2: the Ranger, logged in as the SAME site account that asked, opens the link -> their old badges become normal registrations.
+const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+export const sha256 = async (text) => hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)));
+const escHtml = (t) => String(t || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+export async function processReclaim(env, id, stale = false) {
+  const o = odoo(env);
+  let c = null;
+  for (const wait of [0, 300, 700, 1500, 3000]) {
+    if (wait) await sleep(wait);
+    const r = await o("x_badge_reclaim", "read", [[id]], { fields: ["x_lookup", "x_token", "x_status", "create_uid"] }).catch(() => []);
+    if (r.length) { c = r[0]; break; }
+  }
+  if (!c) return;
+  if (c.x_status !== "pending" && !(stale && c.x_status === "processing")) return;
+  await o("x_badge_reclaim", "write", [[id], { x_status: "processing" }]);
+  const finish = (status, message, extra = {}) => o("x_badge_reclaim", "write", [[id], { x_status: status, x_message: message, x_token: false, x_lookup: false, ...extra }]);   // the link code and what they typed are wiped from the request
+  const userId = c.create_uid && c.create_uid[0];
+  const user = userId ? (await o("res.users", "read", [[userId]], { fields: ["partner_id", "active"] }))[0] : null;
+  if (!user || !user.active || !user.partner_id || !env.DB) return finish("error", MSG.error);
+  const partnerId = user.partner_id[0];
+  if ((await o("x_badge_reclaim", "search_count", [[["create_uid", "=", userId], ["create_date", ">", odooTime(Date.now() - 86400000)]]])) > RECLAIM_MAX_PER_DAY) return finish("locked", MSG.reclaimLimit);
+  const now = Math.floor(Date.now() / 1000);
+
+  if ((c.x_token || "").trim()) {                                    // ---- step 2: redeem the emailed link ----
+    const token = c.x_token.trim();
+    if (!/^[0-9a-f]{48}$/.test(token)) return finish("invalid", MSG.reclaimBad);
+    const hash = await sha256(token);
+    const claim = await env.DB.prepare("SELECT wp_user_id, partner_id, expires_at, used FROM claims WHERE token_hash = ?1").bind(hash).first();
+    if (!claim || claim.used || claim.expires_at < now || claim.partner_id !== partnerId) return finish("invalid", MSG.reclaimBad);
+    const member = await env.DB.prepare("SELECT wp_user_id, claimed_by FROM members WHERE wp_user_id = ?1").bind(claim.wp_user_id).first();
+    if (!member || (member.claimed_by && member.claimed_by !== partnerId)) return finish("invalid", MSG.reclaimBad);
+    const used = await env.DB.prepare("UPDATE claims SET used = 1 WHERE token_hash = ?1 AND used = 0").bind(hash).run();   // single use, race-safe
+    if (!used.meta || used.meta.changes !== 1) return finish("invalid", MSG.reclaimBad);
+    try {
+      const rows = (await env.DB.prepare("SELECT product_id, unlocked_at FROM unlocks WHERE wp_user_id = ?1").bind(claim.wp_user_id).all()).results || [];
+      const ids = rows.map((r) => r.product_id);
+      const prods = ids.length ? await o("product.template", "search_read", [[["id", "in", ids]]], { fields: ["x_studio_badge_point_value"], limit: 2000 }) : [];   // active products only
+      const pts = new Map(prods.map((p) => [p.id, p.x_studio_badge_point_value || 0]));
+      const have = ids.length ? await o("x_badge_registration", "search_read", [[["x_partner_id", "=", partnerId], ["x_product_id", "in", ids], ["x_status", "=", "active"]]], { fields: ["x_product_id"], limit: 2000 }) : [];
+      const owned = new Set(have.map((r) => r.x_product_id[0]));
+      const fresh = rows.filter((r) => pts.has(r.product_id) && !owned.has(r.product_id));
+      if (fresh.length) await o("x_badge_registration", "create", [fresh.map((r) => ({ x_partner_id: partnerId, x_product_id: r.product_id,
+        x_registered_at: r.unlocked_at || odooTime(Date.now()), x_source: "legacy_wordpress", x_status: "active", x_points: pts.get(r.product_id), x_legacy_key: `wp${claim.wp_user_id}-${r.product_id}` }))]);
+      await env.DB.prepare("UPDATE members SET claimed_by = ?1, claimed_at = ?2 WHERE wp_user_id = ?3").bind(partnerId, now, claim.wp_user_id).run();
+      const total = fresh.reduce((a, r) => a + pts.get(r.product_id), 0);
+      return finish("restored", fresh.length ? `Welcome back, Ranger! ${fresh.length} badge${fresh.length === 1 ? "" : "s"} restored.` : "Everything from that old account is already in your collection.", { x_count: fresh.length, x_points: total });
+    } catch (e) {
+      await env.DB.prepare("UPDATE claims SET used = 0 WHERE token_hash = ?1").bind(hash).run();   // let them try the same link again
+      console.log("restore failed", e.message); return finish("error", MSG.error);
+    }
+  }
+
+  // ---- step 1: look up the old account and email the link ----
+  const q = (c.x_lookup || "").trim().toLowerCase();
+  if (q.length < 3 || q.length > 120) return finish("invalid", "Please type your old username or the email address you used on the old site.");
+  const member = await env.DB.prepare("SELECT wp_user_id, username, email, display_name, claimed_by FROM members WHERE lower(username) = ?1 OR lower(email) = ?1 ORDER BY wp_user_id LIMIT 1").bind(q).first();
+  const generic = () => finish("sent", MSG.reclaimSent);              // same answer whether or not an account matched, so nobody can use this box to look up members
+  if (!member || (member.claimed_by && member.claimed_by !== partnerId) || !member.email) return generic();
+  const recent = await env.DB.prepare("SELECT COUNT(*) AS n FROM claims WHERE wp_user_id = ?1 AND created_at > ?2").bind(member.wp_user_id, now - 86400).first();
+  if (recent && recent.n >= RECLAIM_SENDS_PER_OLD_ACCOUNT) return generic();
+  const bytes = crypto.getRandomValues(new Uint8Array(24)); const token = hex(bytes);
+  await env.DB.prepare("INSERT INTO claims (token_hash, wp_user_id, partner_id, expires_at, used, created_at) VALUES (?1, ?2, ?3, ?4, 0, ?5)")
+    .bind(await sha256(token), member.wp_user_id, partnerId, now + RECLAIM_LINK_MIN * 60, now).run();
+  const link = `${String(env.SITE_URL || "").replace(/\/$/, "")}/my-badges?reclaim=${token}`;
+  const mailId = await o("mail.mail", "create", [{ subject: "Reclaim your old Monster Rangers badges", email_to: member.email, auto_delete: true,
+    body_html: `<p>Hello ${escHtml(member.display_name || member.username)},</p><p>Someone (hopefully you) asked to bring the badges from your old Monster Rangers account into the new site.</p>` +
+      `<p><a href="${link}" style="background:#dc6b21;color:#ffffff;padding:10px 18px;border-radius:4px;text-decoration:none;font-weight:bold">Reclaim my badges</a></p>` +
+      `<p>Open this link while you are logged in to the new site with the account you want the badges on. It works once and expires in one hour.</p><p>If this wasn't you, just ignore this email. Nothing will change.</p>` }]);
+  await o("mail.mail", "send", [[mailId]]);
+  return generic();
 }
 
 // ---- Ranger Nicknames: a Ranger asks for a name (a request record), we check it and, if it passes, save it on their profile ----

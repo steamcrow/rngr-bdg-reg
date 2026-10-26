@@ -1,11 +1,11 @@
-import { processClaim, syncRetired, processNick, buildBoard, checkNick, sweep } from "./src/index.js";
+import { processClaim, processReclaim, syncRetired, processNick, buildBoard, checkNick, sweep } from "./src/index.js";
 // ---- a tiny pretend Odoo ----
 const db = {
   "res.users": { 7: { id: 7, partner_id: [70, "Ranger A"], active: true }, 8: { id: 8, partner_id: [80, "Ranger B"], active: true } },
   "product.template": { 100: { id: 100, name: "Yes Planchette", x_studio_badge_secret_code: "@ffirm", x_studio_badge_point_value: 10 },
                         101: { id: 101, name: "Dup A", x_studio_badge_secret_code: "twin", x_studio_badge_point_value: 10 },
                         102: { id: 102, name: "Dup B", x_studio_badge_secret_code: "twin", x_studio_badge_point_value: 10 } },
-  "x_badge_claim": {}, "x_badge_registration": {}, "x_badge_nick": {}, "x_badge_profile": {}, "product.public.category": { 2: { id: 2, name: "Everything" }, 4: { id: 4, name: "Spirit Badges" }, 47: { id: 47, name: "all-products" } }, "product.ribbon": { 5: { id: 5, name: "<p>Retired</p>" }, 6: { id: 6, name: "NEW" } },
+  "x_badge_claim": {}, "x_badge_registration": {}, "x_badge_nick": {}, "x_badge_profile": {}, "x_badge_reclaim": {}, "mail.mail": {}, "product.public.category": { 2: { id: 2, name: "Everything" }, 4: { id: 4, name: "Spirit Badges" }, 47: { id: 47, name: "all-products" } }, "product.ribbon": { 5: { id: 5, name: "<p>Retired</p>" }, 6: { id: 6, name: "NEW" } },
 };
 let seq = 1000, nowMs = Date.now();
 const stamp = (ms) => new Date(ms).toISOString().replace("T", " ").slice(0, 19);
@@ -25,11 +25,27 @@ globalThis.fetch = async (url, init) => {
     else if (m === "write") { for (const i of a[0]) { const vals = { ...a[1] }; if (vals.public_categ_ids) { let cur = [...(t[i].public_categ_ids || [])]; for (const [cmd, id] of vals.public_categ_ids) cur = cmd === 3 ? cur.filter((x) => x !== id) : cur.includes(id) ? cur : [...cur, id]; vals.public_categ_ids = cur; } Object.assign(t[i], vals); } result = true; }
     else if (m === "fields_get") result = { website_ribbon_id: { type: "many2one", relation: "product.ribbon" }, name: { type: "char" } };
     else if (m === "unlink") { for (const i of a[0]) delete t[i]; result = true; }
-    else if (m === "create") { const id = ++seq; t[id] = { id, ...a[0], create_date: stamp(Date.now()) }; result = id; }
+    else if (m === "send") result = true;
+    else if (m === "create") { const mk = (v) => { const id = ++seq; t[id] = { id, ...v, create_date: stamp(Date.now()) }; return id; }; result = Array.isArray(a[0]) ? a[0].map(mk) : mk(a[0]); }
     else throw new Error("unknown " + m); }
   return { json: async () => ({ result }) };
 };
-const env = { ODOO_URL: "http://x", ODOO_DB: "d", ODOO_USER: "u", ODOO_API_KEY: "k" };
+// a tiny pretend D1 database (only the questions the Worker asks)
+const d1 = { members: [], unlocks: [], claims: [] };
+const fakeDB = { prepare(sql) { const q = sql.replace(/\s+/g, " ").trim(); return { bind(...v) { const run = () => {
+  const one = (list, f) => list.find(f) || null;
+  if (q.startsWith("SELECT wp_user_id, partner_id, expires_at, used FROM claims")) return { first: one(d1.claims, (c) => c.token_hash === v[0]) };
+  if (q.startsWith("SELECT wp_user_id, claimed_by FROM members WHERE wp_user_id")) return { first: one(d1.members, (m) => m.wp_user_id === v[0]) };
+  if (q.startsWith("UPDATE claims SET used = 1")) { const c = one(d1.claims, (x) => x.token_hash === v[0] && !x.used); if (c) c.used = 1; return { run: { meta: { changes: c ? 1 : 0 } } }; }
+  if (q.startsWith("UPDATE claims SET used = 0")) { const c = one(d1.claims, (x) => x.token_hash === v[0]); if (c) c.used = 0; return { run: { meta: { changes: 1 } } }; }
+  if (q.startsWith("SELECT product_id, unlocked_at FROM unlocks")) return { all: { results: d1.unlocks.filter((u) => u.wp_user_id === v[0]) } };
+  if (q.startsWith("UPDATE members SET claimed_by")) { const m = one(d1.members, (x) => x.wp_user_id === v[2]); if (m) { m.claimed_by = v[0]; m.claimed_at = v[1]; } return { run: { meta: { changes: 1 } } }; }
+  if (q.startsWith("SELECT wp_user_id, username, email, display_name, claimed_by FROM members WHERE lower(username)")) return { first: one(d1.members, (m) => m.username.toLowerCase() === v[0] || (m.email || "").toLowerCase() === v[0]) };
+  if (q.startsWith("SELECT COUNT(*) AS n FROM claims")) return { first: { n: d1.claims.filter((c) => c.wp_user_id === v[0] && c.created_at > v[1]).length } };
+  if (q.startsWith("INSERT INTO claims")) { d1.claims.push({ token_hash: v[0], wp_user_id: v[1], partner_id: v[2], expires_at: v[3], used: 0, created_at: v[4] }); return { run: { meta: { changes: 1 } } }; }
+  throw new Error("fake D1 does not know: " + q); };
+  return { first: async () => run().first, all: async () => run().all, run: async () => run().run }; } }; } };
+const env = { ODOO_URL: "http://x", ODOO_DB: "d", ODOO_USER: "u", ODOO_API_KEY: "k", DB: fakeDB, SITE_URL: "https://site.example" };
 const regs = (p) => Object.values(db.x_badge_registration).filter((r) => r.x_partner_id === p && r.x_status !== "revoked").length;
 let fails = 0; const ok = (name, cond) => { console.log((cond ? "PASS " : "FAIL ") + name); if (!cond) fails++; };
 
@@ -138,4 +154,57 @@ ok("non-badges and untracked badges are never touched", P[203].website_ribbon_id
 ok("sync reports what it did", rr.retired === 1 && rr.restored === 1);
 ok("retired badge leaves Everything and all-products but stays in Spirit Badges", JSON.stringify(P[200].public_categ_ids) === "[4]");
 ok("a badge back in stock rejoins all-products", P[202].public_categ_ids.includes(47) && P[202].public_categ_ids.includes(4));
+
+// ---- Reclaiming old badges ----
+d1.members.push({ wp_user_id: 500, username: "LadyDrac", email: "Old.Email@Example.com", display_name: "Lady Drac", claimed_by: null },
+                { wp_user_id: 501, username: "taken", email: "t@example.com", display_name: "T", claimed_by: 999 });
+d1.unlocks.push({ wp_user_id: 500, product_id: 100, unlocked_at: "2019-05-01 10:00:00" }, { wp_user_id: 500, product_id: 101, unlocked_at: "2019-06-01 10:00:00" },
+                { wp_user_id: 500, product_id: 777, unlocked_at: "2019-07-01 10:00:00" }, { wp_user_id: 501, product_id: 100, unlocked_at: "2019-05-01 10:00:00" });
+Object.assign(P[100], { x_studio_badge_point_value: 10 }); Object.assign(P[101], { x_studio_badge_point_value: 25 });   // 777 = an archived product: not in P, so it is skipped
+const newReclaim = (uid, lookup, token = false) => { const id = ++seq; db.x_badge_reclaim[id] = { id, x_lookup: lookup, x_token: token, x_status: "pending", create_uid: [uid, "u"], create_date: stamp(Date.now()) }; return id; };
+for (let u = 40; u < 50; u++) db["res.users"][u] = { id: u, partner_id: [u * 10, "R" + u], active: true };
+let r = newReclaim(40, "ladydrac"); await processReclaim(env, r);
+const mails = Object.values(db["mail.mail"]);
+ok("asking for a link emails the address ON THE OLD ACCOUNT", mails.length === 1 && mails[0].email_to === "Old.Email@Example.com" && db.x_badge_reclaim[r].x_status === "sent");
+const token = (mails[0].body_html.match(/reclaim=([0-9a-f]{48})/) || [])[1];
+ok("the email carries a one-time link to the site", !!token && mails[0].body_html.includes("https://site.example/my-badges?reclaim="));
+ok("the stored token is hashed, never the raw token", d1.claims.length === 1 && d1.claims[0].token_hash !== token && d1.claims[0].token_hash.length === 64);
+r = newReclaim(41, "nobody-here"); await processReclaim(env, r);
+ok("an unknown name gets the SAME friendly answer and no email", db.x_badge_reclaim[r].x_status === "sent" && db.x_badge_reclaim[r].x_message === db.x_badge_reclaim[Object.keys(db.x_badge_reclaim)[0]].x_message && Object.keys(db["mail.mail"]).length === 1);
+r = newReclaim(41, "taken"); await processReclaim(env, r);
+ok("an old account already claimed by someone else gets no email", Object.keys(db["mail.mail"]).length === 1 && db.x_badge_reclaim[r].x_status === "sent");
+r = newReclaim(42, token); await processReclaim(env, r);
+r = newReclaim(42, "x", token); await processReclaim(env, r);
+ok("a different logged-in account cannot use someone else's link", db.x_badge_reclaim[r].x_status === "invalid" && !Object.values(db.x_badge_registration).some((g) => g.x_partner_id === 420));
+r = newReclaim(40, "x", token); await processReclaim(env, r);
+const mine = Object.values(db.x_badge_registration).filter((g) => g.x_partner_id === 400 && g.x_source === "legacy_wordpress");
+ok("the right account gets its old badges back", db.x_badge_reclaim[r].x_status === "restored" && mine.length === 2 && db.x_badge_reclaim[r].x_count === 2);
+ok("restored badges carry CURRENT point values, old date and a legacy key", mine.find((g) => g.x_product_id === 101).x_points === 25 && mine[0].x_registered_at.startsWith("2019") && mine[0].x_legacy_key === "wp500-" + mine[0].x_product_id);
+ok("archived badges are skipped, not restored", !mine.some((g) => g.x_product_id === 777));
+ok("the old account is marked as claimed", d1.members[0].claimed_by === 400);
+ok("the link code is wiped from the request", db.x_badge_reclaim[r].x_token === false);
+r = newReclaim(40, "x", token); await processReclaim(env, r);
+ok("a link can only be used once", db.x_badge_reclaim[r].x_status === "invalid" && Object.values(db.x_badge_registration).filter((g) => g.x_partner_id === 400 && g.x_source === "legacy_wordpress").length === 2);
+r = newReclaim(43, "x", "g".repeat(48)); await processReclaim(env, r);
+ok("a made-up token is refused", db.x_badge_reclaim[r].x_status === "invalid");
+// expired links and already-owned badges
+d1.members.push({ wp_user_id: 502, username: "oldtimer", email: "o@example.com", display_name: "O", claimed_by: null }); d1.unlocks.push({ wp_user_id: 502, product_id: 100, unlocked_at: "2018-01-01 00:00:00" }, { wp_user_id: 502, product_id: 101, unlocked_at: "2018-01-02 00:00:00" });
+r = newReclaim(44, "o@example.com"); await processReclaim(env, r);
+const tok2 = Object.values(db["mail.mail"]).at(-1).body_html.match(/reclaim=([0-9a-f]{48})/)[1];
+ok("lookup by email works, any capitals", db.x_badge_reclaim[r].x_status === "sent" && Object.keys(db["mail.mail"]).length === 2);
+d1.claims.at(-1).expires_at = Math.floor(Date.now() / 1000) - 5;
+r = newReclaim(44, "x", tok2); await processReclaim(env, r);
+ok("an expired link is refused", db.x_badge_reclaim[r].x_status === "invalid");
+r = newReclaim(44, "oldtimer"); await processReclaim(env, r);
+const tok3 = Object.values(db["mail.mail"]).at(-1).body_html.match(/reclaim=([0-9a-f]{48})/)[1];
+db.x_badge_registration[++seq] = { id: seq, x_partner_id: 440, x_product_id: 100, x_status: "active", x_points: 10 };
+r = newReclaim(44, "x", tok3); await processReclaim(env, r);
+ok("a badge the Ranger already owns is not doubled", Object.values(db.x_badge_registration).filter((g) => g.x_partner_id === 440 && g.x_product_id === 100).length === 1 && db.x_badge_reclaim[r].x_count === 1);
+// too many link emails for one old account
+d1.members.push({ wp_user_id: 503, username: "popular", email: "p@example.com", display_name: "P", claimed_by: null });
+for (let i = 0; i < 5; i++) await processReclaim(env, newReclaim(45, "popular"));
+ok("at most 3 emails per old account per day", Object.values(db["mail.mail"]).filter((m) => m.email_to === "p@example.com").length === 3);
+for (let i = 0; i < 7; i++) await processReclaim(env, newReclaim(46, "nobody" + i));
+r = newReclaim(46, "ladydrac"); await processReclaim(env, r);
+ok("a Ranger can only ask so many times a day", db.x_badge_reclaim[r].x_status === "locked");
 console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED"); process.exit(fails ? 1 : 0);

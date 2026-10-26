@@ -2,9 +2,9 @@ import { JSDOM } from "jsdom"; import fs from "fs";
 const src = fs.readFileSync("my-badges.js", "utf8");
 let fails = 0; const ok = (n, c) => { console.log((c ? "PASS " : "FAIL ") + n); if (!c) fails++; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-async function run({ session, regs = [], claimFlow = [], rpcFail = false, profile = null, nickFlow = [] }) {
-  const dom = new JSDOM('<body><div id="mr-badges-app"></div></body>', { url: "https://monsterrangers.com/my-badges", runScripts: "outside-only" });
-  const w = dom.window; const calls = []; let claimReads = 0, nickReads = 0;
+async function run({ session, regs = [], claimFlow = [], rpcFail = false, profile = null, nickFlow = [], reclaim = false, reclaimFlow = [], path = "/my-badges" }) {
+  const dom = new JSDOM('<body><div id="mr-badges-app"></div></body>', { url: "https://monsterrangers.com" + path, runScripts: "outside-only" });
+  const w = dom.window; const calls = []; let claimReads = 0, nickReads = 0, reclaimReads = 0;
   w.fetch = async (url, init) => {
     const body = JSON.parse(init.body); let result;
     if (url.includes("get_session_info")) result = session;
@@ -12,6 +12,9 @@ async function run({ session, regs = [], claimFlow = [], rpcFail = false, profil
       if (rpcFail && m.endsWith("/create")) throw new Error("net");
       if (m === "x_badge_registration/search_read") result = regs;
       else if (m === "x_badge_profile/search_read") { if (profile === null) throw new Error("no model"); result = profile; }
+      else if (m === "x_badge_reclaim/search_read") { if (!reclaim) throw new Error("no model"); result = []; }
+      else if (m === "x_badge_reclaim/create") result = 77;
+      else if (m === "x_badge_reclaim/read") result = [reclaimFlow[Math.min(reclaimReads++, reclaimFlow.length - 1)]];
       else if (m === "x_badge_nick/create") result = 66;
       else if (m === "x_badge_nick/read") result = [nickFlow[Math.min(nickReads++, nickFlow.length - 1)]];
       else if (m === "x_badge_claim/create") result = 55;
@@ -79,4 +82,22 @@ ok("nickname request sends only name and show flag, spaces tidied", nc && nc[1].
 ok("nickname result is shown", /Saved!/.test(t.doc.querySelector(".mrn-msg").textContent));
 t = await run({ session: { uid: 9 }, regs: [] });
 ok("if the nickname tables are not installed the page still works", t.doc.querySelector("form") && !t.doc.querySelector("#ranger-nickname"));
+
+t = await run({ session: { uid: 9 }, regs: [], reclaim: true, reclaimFlow: [{ x_status: "processing" }, { x_status: "sent", x_message: "We sent a link." }] });
+ok("reclaim box is there, closed, above the collection", t.doc.querySelector("details#reclaim-badges") && !t.doc.querySelector("details#reclaim-badges").open && t.doc.querySelector("#reclaim-badges").compareDocumentPosition(t.doc.querySelector(".mrb-top")) & 4);
+t.doc.querySelector("input[name=oldname]").value = "  LadyDrac ";
+t.doc.querySelectorAll("form")[1].dispatchEvent(new t.w.Event("submit", { cancelable: true })); await sleep(1500);
+const rc = t.calls.find((c) => c[0] === "x_badge_reclaim/create");
+ok("asking for a link sends only the old name", rc && rc[1].args[0].x_lookup === "LadyDrac" && Object.keys(rc[1].args[0]).join() === "x_lookup");
+ok("the answer is shown", /We sent a link/.test(t.doc.querySelector("details .mrn-msg").textContent));
+const TOK = "ab".repeat(24);
+t = await run({ session: { uid: 9 }, regs: [], reclaim: true, path: "/my-badges?reclaim=" + TOK, reclaimFlow: [{ x_status: "restored", x_message: "Welcome back, Ranger! 3 badges restored." }] }); await sleep(1500);
+const rt = t.calls.find((c) => c[0] === "x_badge_reclaim/create");
+ok("opening the emailed link redeems it automatically", rt && rt[1].args[0].x_token === TOK && Object.keys(rt[1].args[0]).join() === "x_token" && t.doc.querySelector("details").open);
+ok("success is shown and the collection reloads", /3 badges restored/.test(t.doc.querySelector("details .mrn-msg").textContent) && t.calls.filter((c) => c[0] === "x_badge_registration/search_read").length >= 2);
+ok("the code is taken out of the address bar", !t.w.location.search.includes("reclaim"));
+t = await run({ session: { uid: 9 }, regs: [], reclaim: true, path: "/my-badges?reclaim=not-a-token" });
+ok("a junk token in the address is ignored", !t.calls.find((c) => c[0] === "x_badge_reclaim/create"));
+t = await run({ session: { uid: 9 }, regs: [] });
+ok("no reclaim tables yet -> no reclaim box, page still works", !t.doc.querySelector("#reclaim-badges") && t.doc.querySelector("form"));
 console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED"); process.exit(fails ? 1 : 0);
