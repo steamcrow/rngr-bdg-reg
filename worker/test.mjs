@@ -5,13 +5,13 @@ const db = {
   "product.template": { 100: { id: 100, name: "Yes Planchette", x_studio_badge_secret_code: "@ffirm", x_studio_badge_point_value: 10 },
                         101: { id: 101, name: "Dup A", x_studio_badge_secret_code: "twin", x_studio_badge_point_value: 10 },
                         102: { id: 102, name: "Dup B", x_studio_badge_secret_code: "twin", x_studio_badge_point_value: 10 } },
-  "x_badge_claim": {}, "x_badge_registration": {}, "x_badge_nick": {}, "x_badge_profile": {}, "product.ribbon": { 5: { id: 5, name: "<p>Retired</p>" }, 6: { id: 6, name: "NEW" } },
+  "x_badge_claim": {}, "x_badge_registration": {}, "x_badge_nick": {}, "x_badge_profile": {}, "product.public.category": { 2: { id: 2, name: "Everything" }, 4: { id: 4, name: "Spirit Badges" }, 47: { id: 47, name: "all-products" } }, "product.ribbon": { 5: { id: 5, name: "<p>Retired</p>" }, 6: { id: 6, name: "NEW" } },
 };
 let seq = 1000, nowMs = Date.now();
 const stamp = (ms) => new Date(ms).toISOString().replace("T", " ").slice(0, 19);
 const newClaim = (uid, code, ageMs = 0, status = "pending") => { const id = ++seq; db.x_badge_claim[id] = { id, x_code: code, x_status: status, create_uid: [uid, "u"], create_date: stamp(nowMs - ageMs), write_date: stamp(nowMs - ageMs) }; return id; };
 const m2o = (r) => { const o = { ...r }; for (const f of ["x_partner_id", "x_product_id"]) if (typeof o[f] === "number") o[f] = [o[f], "n"]; return o; };
-const match = (r, d) => d.every(([f, op, v]) => { const x = r[f]; const xv = Array.isArray(x) ? x[0] : x;
+const match = (r, d) => d.every(([f, op, v]) => { const x = r[f]; if (Array.isArray(x) && f === "public_categ_ids") return op === "in" ? v.some((i) => x.includes(i)) : op === "not in" ? !v.some((i) => x.includes(i)) : false; const xv = Array.isArray(x) ? x[0] : x;
   return op === "=" ? xv === v : op === "!=" ? xv !== v : op === "<=" ? xv <= v : op === "in" ? v.includes(xv) : op === ">" ? xv > v : op === "<" ? xv < v : false; });
 globalThis.fetch = async (url, init) => {
   const { params } = JSON.parse(init.body); const [service, method, args] = [params.service, params.method, params.args];
@@ -22,7 +22,7 @@ globalThis.fetch = async (url, init) => {
     else if (m === "search") result = Object.values(t).filter((r) => match(r, a[0])).map((r) => r.id).sort((x, y) => x - y);
     else if (m === "search_read") result = Object.values(t).filter((r) => match(r, a[0])).map(m2o);
     else if (m === "search_count") result = Object.values(t).filter((r) => match(r, a[0])).length;
-    else if (m === "write") { for (const i of a[0]) Object.assign(t[i], a[1]); result = true; }
+    else if (m === "write") { for (const i of a[0]) { const vals = { ...a[1] }; if (vals.public_categ_ids) { let cur = [...(t[i].public_categ_ids || [])]; for (const [cmd, id] of vals.public_categ_ids) cur = cmd === 3 ? cur.filter((x) => x !== id) : cur.includes(id) ? cur : [...cur, id]; vals.public_categ_ids = cur; } Object.assign(t[i], vals); } result = true; }
     else if (m === "fields_get") result = { website_ribbon_id: { type: "many2one", relation: "product.ribbon" }, name: { type: "char" } };
     else if (m === "unlink") { for (const i of a[0]) delete t[i]; result = true; }
     else if (m === "create") { const id = ++seq; t[id] = { id, ...a[0], create_date: stamp(Date.now()) }; result = id; }
@@ -128,6 +128,7 @@ Object.assign(P, { 200: { id: 200, name: "Sold out badge", x_studio_badge_secret
   202: { id: 202, name: "Back in stock", x_studio_badge_secret_code: "s3", is_storable: true, qty_available: 3, website_ribbon_id: 5 },
   203: { id: 203, name: "Not a badge", x_studio_badge_secret_code: false, is_storable: true, qty_available: 0, website_ribbon_id: false },
   204: { id: 204, name: "Untracked badge", x_studio_badge_secret_code: "s4", is_storable: false, qty_available: 0, website_ribbon_id: false } });
+P[200].public_categ_ids = [2, 4, 47]; P[202].public_categ_ids = [4, 2];
 for (const id of [100, 101, 102]) Object.assign(P[id], { is_storable: false, qty_available: 0 });
 const rr = await syncRetired(env);
 ok("sold-out badge gets the RETIRED ribbon", P[200].website_ribbon_id === 5);
@@ -135,4 +136,6 @@ ok("badge with stock is left alone", P[201].website_ribbon_id === false);
 ok("badge back in stock loses the ribbon", P[202].website_ribbon_id === false);
 ok("non-badges and untracked badges are never touched", P[203].website_ribbon_id === false && P[204].website_ribbon_id === false);
 ok("sync reports what it did", rr.retired === 1 && rr.restored === 1);
+ok("retired badge leaves Everything and all-products but stays in Spirit Badges", JSON.stringify(P[200].public_categ_ids) === "[4]");
+ok("a badge back in stock rejoins all-products", P[202].public_categ_ids.includes(47) && P[202].public_categ_ids.includes(4));
 console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED"); process.exit(fails ? 1 : 0);

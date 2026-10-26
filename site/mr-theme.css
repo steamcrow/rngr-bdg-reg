@@ -138,8 +138,7 @@ code, pre, kbd, samp { font-family: ui-monospace, "Courier Prime", Menlo, Consol
 #wrapwrap > main #mr-badges-app a.mrb-card:hover b { color: var(--mr-orange-ink); text-decoration: underline; text-underline-offset: 3px; }
 #mr-badges-app .mrb-msg { border: 2px dashed var(--mr-line); }
 
-/* ---- RETIRED badges: they wear a dark-red RETIRED ribbon. Hidden in the shop, search and other categories; the Spirit Badges directory still shows them. ---- */
-html:not(.mr-badge-dir) #wrapwrap :is(.o_wsale_product_grid_wrapper, .oe_product):has([style*="7a2e2e" i]) { display: none; }
+/* ---- RETIRED badges wear a dark-red RETIRED ribbon. The checker also takes them out of the everyday shop categories, so only the Spirit Badges directory lists them. ---- */
 .o_ribbon { font-family: var(--mr-font-ui); letter-spacing: .08em; text-transform: uppercase; }
 
 /* ---- shop controls (Pricelist, Sort by, category pills): dark brown like the rest of the text, never black ---- */

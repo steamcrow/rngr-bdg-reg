@@ -12,6 +12,7 @@ const NEW_MAX_FAILS = 3;        // new accounts: 3 wrong per 15 minutes
 const NEW_MAX_FAILS_DAY = 6;    // new accounts: 6 wrong per 24 hours
 const NEW_GLOBAL_MAX = 60;      // if the whole site gets this many wrong codes in 10 minutes, NEW accounts are paused
 const GLOBAL_WINDOW_MIN = 10;   // (established Rangers are never affected, so a swarm of fake accounts can't block them)
+const SHOP_CATEGORIES = ["Everything", "all-products"];   // shop categories a RETIRED badge is taken out of
 const BOARD_SIZE = 100;         // Glory Leaderboard length
 const BOARD_CACHE_SEC = 300;    // the board is built once per 5 minutes and kept at Cloudflare's edge: visitors never touch Odoo
 const NICK_MAX_PER_DAY = 6;     // nickname save attempts per Ranger per 24 hours
@@ -82,7 +83,20 @@ export async function syncRetired(env) {
   if (toRetire.length) await o("product.template", "write", [toRetire, { [field]: rib.id }]);
   const toRestore = await o("product.template", "search", [[...badge, ["qty_available", ">", 0], [field, "=", rib.id]]], { limit: 200 });
   if (toRestore.length) await o("product.template", "write", [toRestore, { [field]: false }]);
-  return { retired: toRetire.length, restored: toRestore.length };
+  // Retired badges leave the everyday shop categories ("Everything", "all-products") but stay in Spirit Badges, so only the directory lists them.
+  const cats = await o("product.public.category", "search_read", [[["name", "in", SHOP_CATEGORIES]]], { fields: ["name"] });
+  const catIds = cats.map((c) => c.id);
+  let left = 0, back = 0;
+  if (catIds.length) {
+    const stillIn = await o("product.template", "search", [[...badge, [field, "=", rib.id], ["public_categ_ids", "in", catIds]]], { limit: 200 });
+    if (stillIn.length) { await o("product.template", "write", [stillIn, { public_categ_ids: catIds.map((i) => [3, i]) }]); left = stillIn.length; }
+    const allProducts = cats.find((c) => c.name === "all-products");
+    if (allProducts) {
+      const returned = toRestore.length ? await o("product.template", "search", [[["id", "in", toRestore], ["public_categ_ids", "not in", [allProducts.id]]]]) : [];
+      if (returned.length) { await o("product.template", "write", [returned, { public_categ_ids: [[4, allProducts.id]] }]); back = returned.length; }
+    }
+  }
+  return { retired: toRetire.length, restored: toRestore.length, leftShop: left, backInShop: back };
 }
 
 // ---- Ranger Nicknames: a Ranger asks for a name (a request record), we check it and, if it passes, save it on their profile ----
