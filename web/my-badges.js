@@ -39,7 +39,7 @@
     s.textContent =
       "#mr-badges-app{font-size:1.05rem;line-height:1.6;max-width:1100px;margin:0 auto}" +
       "#mr-badges-app .mrb-panel{border:2px dashed var(--mr-line,#b9aab6);background:var(--mr-card-bg,#fff);border-radius:.5rem;padding:1.3rem 1.5rem 1.4rem;margin-bottom:1.5rem}" +
-      "#mr-badges-app .mrb-label{font-family:var(--mr-font-ui,inherit);text-transform:uppercase;letter-spacing:.08em;font-size:1.5rem;line-height:1.1;margin:0 0 .8rem}" +
+      "#mr-badges-app .mrb-label{font-family:var(--mr-font-head,inherit);font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:1.5rem;line-height:1.15;margin:0 0 .8rem}" +
       "#mr-badges-app form{display:flex;flex-wrap:wrap;gap:.7rem;margin:0}" +
       "#mr-badges-app .mrb-panel input[type=text]{flex:1 1 16rem;min-width:0;padding:.7rem .9rem;font-size:1.1rem;border:2px solid var(--mr-field-line,#8a7a88);border-radius:.4rem;background:var(--mr-input-bg,#fff)}" +
       "#mr-badges-app button[disabled]{opacity:.55;cursor:wait}" +
@@ -48,20 +48,26 @@
       "#mr-badges-app .mrb-msg.ok{background:#e3f4e1}#mr-badges-app .mrb-msg.warn{background:#fff1d6}#mr-badges-app .mrb-msg.bad{background:#fbe0e0}" +
       "#mr-badges-app .mrb-top{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between;margin:2rem 0 1.2rem}" +
       "#mr-badges-app .mrb-top input{flex:1 1 14rem;max-width:22rem;padding:.55rem .8rem;border:2px solid var(--mr-field-line,#8a7a88);border-radius:.4rem;background:var(--mr-input-bg,#fff)}" +
-      "#mr-badges-app .mrb-total{font-family:var(--mr-font-ui,inherit);text-transform:uppercase;letter-spacing:.06em;font-size:1.9rem;line-height:1}" +
+      "#mr-badges-app .mrb-total{font-family:var(--mr-font-head,inherit);font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:1.6rem;line-height:1.1}" +
       "#mr-badges-app .mrb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1.75rem}" +
-      "#mr-badges-app .mrb-card{border:2px dashed var(--mr-line,#c9bfc7);border-radius:.5rem;padding:1rem .8rem 1.1rem;text-align:center;background:var(--mr-card-bg,#fff);color:var(--mr-ink,#222)}" +
+      "#mr-badges-app .mrb-card{display:block;border:2px dashed var(--mr-line,#c9bfc7);border-radius:.5rem;padding:1rem .8rem 1.1rem;text-align:center;background:var(--mr-card-bg,#fff);color:var(--mr-ink,#222)}" +
       "#mr-badges-app .mrb-card img{width:100%;max-width:130px;height:130px;object-fit:contain}" +
       "#mr-badges-app .mrb-card b{display:block;margin-top:.5rem;font-size:1rem;line-height:1.25}" +
       "#mr-badges-app .mrb-card small{opacity:.75}" +
       "#mr-badges-app .mrb-more{margin-top:1.5rem}" +
+      "#mr-badges-app .mrn-row{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center}" +
+      "#mr-badges-app .mrn-check{display:flex;gap:.5rem;align-items:center;margin:.8rem 0 0}" +
+      "#mr-badges-app .mrn-check input{width:1.2rem;height:1.2rem;accent-color:var(--mr-orange,#dc6b21)}" +
+      "#mr-badges-app .mrn-help{margin:0 0 .9rem}#mr-badges-app .mrn-help li{margin-bottom:.2rem}" +
+      "#mr-badges-app .mrn-msg{margin:1rem 0 0;padding:.7rem 1rem;border-radius:.4rem}#mr-badges-app .mrn-msg:empty{display:none}" +
+      "#mr-badges-app .mrn-msg.ok{background:#e3f4e1}#mr-badges-app .mrn-msg.bad{background:#fbe0e0}#mr-badges-app .mrn-msg.warn{background:#fff1d6}" +
       /* success: conjured badge magic (about 1.3 seconds) */
       "#mr-badges-app .mrb-msg.ok{text-align:center;padding:1rem}" +
       "#mr-badges-app .mrb-stage{position:relative;width:150px;height:150px;margin:0 auto .3rem;display:flex;align-items:center;justify-content:center}" +
       "#mr-badges-app .mrb-aura{position:absolute;inset:-6px;border-radius:50%;background:conic-gradient(#7b2ff7,#00d4ff,#ff4fd8,#ffd84f,#7b2ff7);filter:blur(12px);opacity:0;animation:mrb-aura 1.3s ease-out forwards}" +
       "#mr-badges-app .mrb-msg .mrb-stage img{position:relative;width:120px;height:120px;margin:0;opacity:0;transform:scale(.55);animation:mrb-pop .45s .4s cubic-bezier(.2,1.3,.4,1) forwards}" +
       "#mr-badges-app .mrb-spark{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;border-radius:50%;background:#ffe27a;box-shadow:0 0 8px 2px #fff3b0;opacity:0;animation:mrb-spark .9s .35s ease-out forwards}" +
-      "#mr-badges-app .mrb-win{font-family:var(--mr-font-head,inherit);text-transform:uppercase;font-size:1.9rem;font-weight:800;opacity:0;animation:mrb-pop .3s .85s ease-out forwards}" +
+      "#mr-badges-app .mrb-win{font-family:var(--mr-font-head,inherit);text-transform:uppercase;font-size:1.9rem;font-weight:700;opacity:0;animation:mrb-pop .3s .85s ease-out forwards}" +
       "#mr-badges-app .mrb-sub{opacity:0;animation:mrb-pop .3s 1s ease-out forwards}" +
       "@keyframes mrb-aura{0%{opacity:0;transform:scale(.3) rotate(0)}35%{opacity:.95}100%{opacity:.0;transform:scale(1.35) rotate(220deg)}}" +
       "@keyframes mrb-pop{to{opacity:1;transform:scale(1)}}" +
@@ -99,19 +105,60 @@
   }
   function render() {
     var total = state.regs.reduce(function (a, r) { return a + (r.x_points || 0); }, 0);
-    ROOT.querySelector(".mrb-total").textContent = state.regs.length + (state.regs.length === 1 ? " badge" : " badges") + " \u00b7 " + total + " points";
+    ROOT.querySelector(".mrb-total").textContent = state.regs.length + (state.regs.length === 1 ? " badge" : " badges") + " \u00b7 " + total + " Glory points";
     var f = state.filter.toLowerCase();
     var list = state.regs.filter(function (r) { return !f || (r.x_product_id && r.x_product_id[1].toLowerCase().indexOf(f) > -1); });
     var grid = ROOT.querySelector(".mrb-grid"); grid.textContent = "";
     list.slice(0, state.shown).forEach(function (r) {
       var name = r.x_product_id ? r.x_product_id[1].replace(/ Spirit Badge$/, "") : "Badge";
-      grid.appendChild(h("div", { class: "mrb-card" }, [
+      var cardAttrs = { class: "mrb-card" }; if (r.x_product_id) cardAttrs.href = "/shop/" + r.x_product_id[0];     // each badge links to its shop page
+      grid.appendChild(h(r.x_product_id ? "a" : "div", cardAttrs, [
         h("img", { src: r.x_product_id ? imgUrl(r.x_product_id[0]) : "", alt: "", loading: "lazy" }),
-        h("b", { text: name }), h("small", { text: (r.x_points || 0) + " pts" })]));
+        h("b", { text: name }), h("small", { text: (r.x_points || 0) + " Glory" })]));
     });
     var more = ROOT.querySelector(".mrb-more");
     more.style.display = list.length > state.shown ? "" : "none";
     if (!list.length) grid.appendChild(h("p", { text: state.regs.length ? "No badges match that search." : "No badges yet. Enter a badge code above to add your first one!" }));
+  }
+  // ---- Ranger Nickname: the public name for the Glory leaderboard. The checker (Worker) approves it; nothing here decides anything. ----
+  function nickPanel() {
+    return rpc("x_badge_profile", "search_read", [[]], { fields: ["x_nickname", "x_show"], limit: 1 }).then(function (rows) {
+      var mine = rows[0] || {};
+      var input = h("input", { type: "text", name: "nickname", maxlength: "24", autocomplete: "off", spellcheck: "false", placeholder: "Your Ranger Nickname", "aria-label": "Ranger Nickname" });
+      input.value = mine.x_nickname || "";
+      var cb = h("input", { type: "checkbox", id: "mrn-show", name: "show" }); cb.checked = !!mine.x_show;
+      var msg = h("div", { class: "mrn-msg", "aria-live": "polite", role: "status" });
+      var btn = h("button", { type: "submit", class: "btn btn-primary", text: "Save nickname" });
+      var form = h("form", { novalidate: "novalidate" }, [h("div", { class: "mrn-row" }, [input, btn]),
+        h("label", { class: "mrn-check", for: "mrn-show" }, [cb, h("span", { text: "Show me on the Glory Leaderboard" })]), msg]);
+      form.style.display = "block";
+      var busy = false;
+      function sayN(kind, text) { msg.className = "mrn-msg " + kind; msg.textContent = text; }
+      function pollN(id, n) {
+        return rpc("x_badge_nick", "read", [[id]], { fields: ["x_status", "x_message"] }).then(function (r) {
+          var c = r[0] || {};
+          if (c.x_status === "pending" || c.x_status === "processing") {
+            if (n >= POLL_MAX) { sayN("warn", "Still saving... please check again in a minute."); return; }
+            return new Promise(function (ok) { setTimeout(ok, POLL_MS); }).then(function () { return pollN(id, n + 1); });
+          }
+          sayN(c.x_status === "ok" ? "ok" : "bad", c.x_message || "Something went wrong. Please try again.");
+        });
+      }
+      form.addEventListener("submit", function (ev) {
+        ev.preventDefault(); if (busy) return;
+        var name = input.value.replace(/\s+/g, " ").trim();
+        if (cb.checked && !name) { sayN("warn", "Type a Ranger Nickname first, or untick the box."); return; }
+        busy = true; btn.disabled = true; sayN("warn", "Saving...");
+        rpc("x_badge_nick", "create", [{ x_nickname: name, x_show: cb.checked }]).then(function (id) { return pollN(id, 0); })
+          .catch(function () { sayN("bad", "We couldn't reach the badge desk. Nothing was changed. Please try again."); })
+          .then(function () { busy = false; btn.disabled = false; });
+      });
+      var help = h("ul", { class: "mrn-help" }, [h("li", { text: "This is the name other Rangers see on the Glory Leaderboard. Your real name and email are never shown." }),
+        h("li", { text: "3 to 24 letters, numbers, spaces, dots or dashes. Each nickname can only belong to one Ranger." }),
+        h("li", { text: "Tick the box to join the board, or untick it to hide yourself again. Changes show up within about five minutes." })]);
+      var link = h("p", {}, [h("a", { href: "/leaderboard", text: "See the Glory Leaderboard" })]);
+      ROOT.appendChild(h("div", { class: "mrb-panel", id: "ranger-nickname", style: "margin-top:2rem" }, [h("h2", { class: "mrb-label", text: "Your Ranger Nickname" }), help, form, link]));
+    }).catch(function () { /* the nickname tables are not installed on this site yet: show nothing */ });
   }
   function load() {
     return rpc("x_badge_registration", "search_read", [[["x_status", "=", "active"]]],
@@ -126,7 +173,7 @@
         return new Promise(function (ok) { setTimeout(ok, POLL_MS); }).then(function () { return poll(id, n + 1); });
       }
       var pid = c.x_product_id && c.x_product_id[0];
-      if (c.x_status === "registered") { conjure("ok", c.x_product_id ? c.x_product_id[1] : "", (c.x_message || "Badge added!") + " +" + (c.x_points || 0) + " points", pid); return load(); }
+      if (c.x_status === "registered") { conjure("ok", c.x_product_id ? c.x_product_id[1] : "", (c.x_message || "Badge added!") + " +" + (c.x_points || 0) + " Glory points", pid); return load(); }
       if (c.x_status === "already") { say("warn", c.x_message || "You already have this badge.", pid); return; }
       if (c.x_status === "invalid" || c.x_status === "locked") { stormCloud(c.x_message || "That code was not recognized."); return; }
       say("bad", c.x_message || "Something went wrong. Please try again.");
@@ -157,7 +204,7 @@
     more.addEventListener("click", function () { state.shown += PAGE; render(); });
     var top = h("div", { class: "mrb-top", id: "my-collection" }, [h("div", { class: "mrb-total", text: "" }), search]);
     ROOT.appendChild(top); ROOT.appendChild(h("div", { class: "mrb-grid" })); ROOT.appendChild(more);
-    return load();
+    return load().then(nickPanel);
   }
   whoAmI().then(function (s) {
     var loggedIn = s && s.uid && !s.is_public && !s.is_website_user;

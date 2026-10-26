@@ -3,11 +3,11 @@
    because a picture named in an outside stylesheet would be looked for on the wrong website.
    Colors: change them here and nowhere else. */
 :root {
-  --bs-black: #2b1d1a; --bs-black-rgb: 43, 29, 26;          /* Odoo's "black" becomes dark brown everywhere */
-  --bs-body-color: #2b1d1a; --bs-body-color-rgb: 43, 29, 26; --bs-heading-color: #2b1d1a;
+  --bs-black: #4a2c1a; --bs-black-rgb: 74, 44, 26;          /* Odoo's "black" becomes dark brown everywhere (a warm chocolate brown, so it reads as brown and not black) */
+  --bs-body-color: #4a2c1a; --bs-body-color-rgb: 74, 44, 26; --bs-heading-color: #4a2c1a;
   --mr-plum: #472b44;       /* header, footer, menus (your current plum-brown) */
   --mr-plum-deep: #33203a;  /* footer, hover */
-  --mr-ink: #2b1d1a;        /* text on paper: dark brown, never black */
+  --mr-ink: #4a2c1a;        /* text on paper: dark brown, never black */
   --mr-cream: #f6ecd9;      /* text on dark, light paper */
   --mr-paper: #f3e7cf;      /* paper color if the picture is slow to load */
   --mr-orange: #dc6b21;     /* your accent, for dark backgrounds and buttons */
@@ -127,4 +127,7 @@ code, pre, kbd, samp { font-family: ui-monospace, "Courier Prime", Menlo, Consol
 /* ---- the badge page ---- */
 #mr-badges-app .mrb-card { background-color: var(--mr-card-bg); border: 2px dashed var(--mr-line); color: var(--mr-ink); }
 #mr-badges-app .mrb-panel { border-color: var(--mr-line); }
+#mr-badges-app a.mrb-card, #wrapwrap > main #mr-badges-app a.mrb-card { color: var(--mr-ink); text-decoration: none; display: block; }
+#wrapwrap > main #mr-badges-app a.mrb-card:hover { color: var(--mr-ink); }
+#wrapwrap > main #mr-badges-app a.mrb-card:hover b { color: var(--mr-orange-ink); text-decoration: underline; text-underline-offset: 3px; }
 #mr-badges-app .mrb-msg { border: 2px dashed var(--mr-line); }

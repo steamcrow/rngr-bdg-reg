@@ -1,27 +1,29 @@
-import { processClaim, sweep } from "./src/index.js";
+import { processClaim, processNick, buildBoard, checkNick, sweep } from "./src/index.js";
 // ---- a tiny pretend Odoo ----
 const db = {
   "res.users": { 7: { id: 7, partner_id: [70, "Ranger A"], active: true }, 8: { id: 8, partner_id: [80, "Ranger B"], active: true } },
   "product.template": { 100: { id: 100, name: "Yes Planchette", x_studio_badge_secret_code: "@ffirm", x_studio_badge_point_value: 10 },
                         101: { id: 101, name: "Dup A", x_studio_badge_secret_code: "twin", x_studio_badge_point_value: 10 },
                         102: { id: 102, name: "Dup B", x_studio_badge_secret_code: "twin", x_studio_badge_point_value: 10 } },
-  "x_badge_claim": {}, "x_badge_registration": {},
+  "x_badge_claim": {}, "x_badge_registration": {}, "x_badge_nick": {}, "x_badge_profile": {},
 };
 let seq = 1000, nowMs = Date.now();
 const stamp = (ms) => new Date(ms).toISOString().replace("T", " ").slice(0, 19);
 const newClaim = (uid, code, ageMs = 0, status = "pending") => { const id = ++seq; db.x_badge_claim[id] = { id, x_code: code, x_status: status, create_uid: [uid, "u"], create_date: stamp(nowMs - ageMs), write_date: stamp(nowMs - ageMs) }; return id; };
+const m2o = (r) => { const o = { ...r }; for (const f of ["x_partner_id", "x_product_id"]) if (typeof o[f] === "number") o[f] = [o[f], "n"]; return o; };
 const match = (r, d) => d.every(([f, op, v]) => { const x = r[f]; const xv = Array.isArray(x) ? x[0] : x;
-  return op === "=" ? xv === v : op === "in" ? v.includes(xv) : op === ">" ? xv > v : op === "<" ? xv < v : false; });
+  return op === "=" ? xv === v : op === "!=" ? xv !== v : op === "in" ? v.includes(xv) : op === ">" ? xv > v : op === "<" ? xv < v : false; });
 globalThis.fetch = async (url, init) => {
   const { params } = JSON.parse(init.body); const [service, method, args] = [params.service, params.method, params.args];
   let result;
   if (service === "common") result = 1;
   else { const [, , , model, m, a, kw = {}] = args; const t = db[model];
-    if (m === "read") result = a[0].map((i) => ({ ...t[i] })).filter(Boolean);
+    if (m === "read") result = a[0].map((i) => m2o(t[i])).filter(Boolean);
     else if (m === "search") result = Object.values(t).filter((r) => match(r, a[0])).map((r) => r.id).sort((x, y) => x - y);
-    else if (m === "search_read") result = Object.values(t).filter((r) => match(r, a[0])).map((r) => ({ ...r }));
+    else if (m === "search_read") result = Object.values(t).filter((r) => match(r, a[0])).map(m2o);
     else if (m === "search_count") result = Object.values(t).filter((r) => match(r, a[0])).length;
     else if (m === "write") { for (const i of a[0]) Object.assign(t[i], a[1]); result = true; }
+    else if (m === "unlink") { for (const i of a[0]) delete t[i]; result = true; }
     else if (m === "create") { const id = ++seq; t[id] = { id, ...a[0], create_date: stamp(Date.now()) }; result = id; }
     else throw new Error("unknown " + m); }
   return { json: async () => ({ result }) };
@@ -83,4 +85,38 @@ ok("an already-finished claim is left alone", db.x_badge_claim[c].x_status === "
 // sweeper picks up an old pending claim
 c = newClaim(7, "@ffirm", 60000); await sweep(env);
 ok("sweeper finishes a forgotten pending claim", db.x_badge_claim[c].x_status !== "pending");
+
+// ---- Ranger Nicknames and the Glory Leaderboard ----
+const newNick = (uid, name, show = true) => { const id = ++seq; db.x_badge_nick[id] = { id, x_nickname: name, x_show: show, x_status: "pending", create_uid: [uid, "u"], create_date: stamp(Date.now()) }; return id; };
+const prof = (p) => Object.values(db.x_badge_profile).find((r) => r.x_partner_id === p);
+let n = newNick(7, "  Moss   Fox "); await processNick(env, n);
+ok("good nickname is saved and shown", db.x_badge_nick[n].x_status === "ok" && prof(70).x_nickname === "Moss Fox" && prof(70).x_show === true && prof(70).x_nick_key === "mossfox");
+n = newNick(8, "moss-fox"); await processNick(env, n);
+ok("same name (any spacing or case) is taken", db.x_badge_nick[n].x_status === "taken" && !prof(80));
+for (let u = 20; u < 40; u++) db["res.users"][u] = { id: u, partner_id: [u * 10, "R" + u], active: true };
+let ui = 20;
+for (const bad of ["ab", "x".repeat(25), "<b>hi</b>", "Fu(k", "-Dash", "a@b.com", "Admin", "Monster Rangers", "Sh1t Head", "NAZI Dave"]) {
+  const bu = ui++; n = newNick(bu, bad); await processNick(env, n); ok("rejects " + JSON.stringify(bad), db.x_badge_nick[n].x_status === "invalid" && !prof(bu * 10));
+}
+ok("a name containing 'cock' as part of a real word is fine (Peacock)", !!checkNick("Peacock").name);
+n = newNick(8, "Wren", true); await processNick(env, n);
+ok("second Ranger saves a different name", db.x_badge_nick[n].x_status === "ok" && prof(80).x_nickname === "Wren");
+n = newNick(7, "", false); await processNick(env, n);
+ok("an empty name with the box unticked just hides the Ranger", db.x_badge_nick[n].x_status === "ok" && prof(70).x_show === false && prof(70).x_nickname === "Moss Fox");
+n = newNick(7, "", true); await processNick(env, n);
+ok("an empty name with the box ticked is refused", db.x_badge_nick[n].x_status === "invalid");
+prof(80).x_blocked = true; n = newNick(8, "Wren Two"); await processNick(env, n);
+ok("a staff-blocked profile cannot change its name", db.x_badge_nick[n].x_status === "invalid" && prof(80).x_nickname === "Wren");
+prof(80).x_blocked = false;
+for (let i = 0; i < 8; i++) { n = newNick(11, "Spam" + i); await processNick(env, n); }
+ok("name changes are capped per day", db.x_badge_nick[n].x_status === "invalid" && /try again tomorrow/.test(db.x_badge_nick[n].x_message));
+
+prof(70).x_show = true; prof(80).x_show = true;
+let b = await buildBoard(env);
+ok("board lists opted-in Rangers by points, best first, with ranks", b.rows[0].name === "Moss Fox" && b.rows[0].points === 35 && b.rows[0].badges === 2 && b.rows[0].rank === 1 && b.rows[1].rank === 2 && b.rows[2].rank === 2 && b.rows[1].points === 10);
+ok("board never contains real names, emails or partner ids", !JSON.stringify(b).match(/Ranger A|partner|@/));
+prof(70).x_show = false; b = await buildBoard(env);
+ok("hidden Rangers are not on the board", b.rows.every((r) => r.name !== "Moss Fox"));
+prof(70).x_show = true; prof(70).x_blocked = true; b = await buildBoard(env);
+ok("blocked Rangers are not on the board", b.rows.every((r) => r.name !== "Moss Fox"));
 console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED"); process.exit(fails ? 1 : 0);
