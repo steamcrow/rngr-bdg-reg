@@ -202,9 +202,12 @@
     }).catch(function () { /* the nickname tables are not installed on this site yet: show nothing */ });
   }
   function load() {
-    return rpc("x_badge_registration", "search_read", [[["x_status", "=", "active"]]],
-      { fields: ["x_product_id", "x_points", "x_registered_at"], order: "x_registered_at desc, id desc", limit: 2000 })
-      .then(function (rows) { state.regs = rows; render(); });
+    return whoAmI().then(function (me) {              // staff can see everyone's badges, so always ask for MY partner only
+      var dom = [["x_status", "=", "active"]];
+      if (me.partner_id) dom.push(["x_partner_id", "=", me.partner_id]);
+      return rpc("x_badge_registration", "search_read", [dom],
+        { fields: ["x_product_id", "x_points", "x_registered_at"], order: "x_registered_at desc, id desc", limit: 2000 });
+    }).then(function (rows) { state.regs = rows; render(); });
   }
   function poll(id, n) {
     return rpc("x_badge_claim", "read", [[id]], { fields: ["x_status", "x_message", "x_product_id", "x_points"] }).then(function (r) {
