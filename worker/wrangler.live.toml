@@ -1,0 +1,16 @@
+name = "rngr-badge-checker-live"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+[triggers]
+crons = ["* * * * *"]     # the once-a-minute safety sweeper
+
+# Secrets (set with `npx wrangler secret put NAME`, never written in this file):
+#   ODOO_URL  ODOO_DB  ODOO_USER  ODOO_API_KEY  HOOK_SECRET  SITE_URL (the public address of the site, e.g. https://monsterrangers.com, used in reclaim emails)
+# The old-badge history lives in a D1 database named rngr-reclaim; run  ../reclaim_d1_setup.sh  once to create it and add its [[d1_databases]] block here.
+
+
+[[d1_databases]]
+binding = "DB"
+database_name = "rngr-reclaim-live"
+database_id = "1670ae7d-1196-41cf-9bcf-96748003b788"

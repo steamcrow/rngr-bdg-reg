@@ -181,11 +181,11 @@ export async function processReclaim(env, id, stale = false) {
   await env.DB.prepare("INSERT INTO claims (token_hash, wp_user_id, partner_id, expires_at, used, created_at) VALUES (?1, ?2, ?3, ?4, 0, ?5)")
     .bind(await sha256(token), member.wp_user_id, partnerId, now + RECLAIM_LINK_MIN * 60, now).run();
   const link = `${String(env.SITE_URL || "").replace(/\/$/, "")}/my-badges?reclaim=${token}`;
-  const mailId = await o("mail.mail", "create", [{ subject: "Reclaim your old Monster Rangers badges", email_to: member.email, auto_delete: true,
+  const mailId = await o("mail.mail", "create", [{ subject: "Reclaim your old Monster Rangers badges", email_to: member.email, auto_delete: !env.KEEP_TEST_MAIL,
     body_html: `<p>Hello ${escHtml(member.display_name || member.username)},</p><p>Someone (hopefully you) asked to bring the badges from your old Monster Rangers account into the new site.</p>` +
       `<p><a href="${link}" style="background:#dc6b21;color:#ffffff;padding:10px 18px;border-radius:4px;text-decoration:none;font-weight:bold">Reclaim my badges</a></p>` +
       `<p>Open this link while you are logged in to the new site with the account you want the badges on. It works once and expires in one hour.</p><p>If this wasn't you, just ignore this email. Nothing will change.</p>` }]);
-  await o("mail.mail", "send", [[mailId]]);
+  await o("mail.mail", "send", [[mailId]]).catch((e) => console.log("mail send failed (the message stays in Odoo's outgoing list)", e.message));
   return generic();
 }
 

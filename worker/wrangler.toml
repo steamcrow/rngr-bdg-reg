@@ -8,3 +8,8 @@ crons = ["* * * * *"]     # the once-a-minute safety sweeper
 # Secrets (set with `npx wrangler secret put NAME`, never written in this file):
 #   ODOO_URL  ODOO_DB  ODOO_USER  ODOO_API_KEY  HOOK_SECRET  SITE_URL (the public address of the site, e.g. https://monsterrangers.com, used in reclaim emails)
 # The old-badge history lives in a D1 database named rngr-reclaim; run  ../reclaim_d1_setup.sh  once to create it and add its [[d1_databases]] block here.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "rngr-reclaim"
+database_id = "c930da08-d9c4-4768-b01a-04985c456165"
