@@ -18,6 +18,14 @@
     (kids || []).forEach(function (c) { if (c) el.appendChild(c); });
     return el;
   }
+  /* PLACEHOLDER Order of Obscuria seal (swap for real art later). The Ranger Card page has its own copy. */
+  function oooIcon() {
+    var NS = "http://www.w3.org/2000/svg", wrap = h("span", { class: "mrl-ooo", role: "img", "aria-label": "Order of Obscuria Member", title: "Order of Obscuria Member" });
+    var svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("width", "20"); svg.setAttribute("height", "20"); svg.setAttribute("aria-hidden", "true");
+    var c = document.createElementNS(NS, "circle"); c.setAttribute("cx", "12"); c.setAttribute("cy", "12"); c.setAttribute("r", "10.5"); c.setAttribute("fill", "#4b2a5c"); c.setAttribute("stroke", "#e7b64a"); c.setAttribute("stroke-width", "1.5"); svg.appendChild(c);
+    var t = document.createElementNS(NS, "text"); t.setAttribute("x", "12"); t.setAttribute("y", "15.2"); t.setAttribute("text-anchor", "middle"); t.setAttribute("font-size", "8.5"); t.setAttribute("font-weight", "700"); t.setAttribute("fill", "#e7b64a"); t.setAttribute("font-family", "sans-serif"); t.textContent = "OoO"; svg.appendChild(t);
+    wrap.appendChild(svg); return wrap;
+  }
   function css() {
     if (document.getElementById("mr-board-css")) return;
     var s = document.createElement("style"); s.id = "mr-board-css";
@@ -35,6 +43,7 @@
       "#mr-board-app td.mrl-num{font-family:var(--mr-font-head,inherit);font-weight:700;font-size:1.25rem;white-space:nowrap}" +
       "#mr-board-app tr.mrl-me td{background:rgba(220,107,33,.12)}" +
       "#mr-board-app .mrl-you{font-weight:400;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;margin-left:.5rem;color:var(--mr-orange-ink,#a8470f)}" +
+      "#mr-board-app .mrl-ooo{display:inline-block;vertical-align:-.3em;margin-left:.45rem;line-height:0}" +
       "#mr-board-app .mrl-note{font-size:.9rem;opacity:.85}";
     document.head.appendChild(s);
   }
@@ -53,12 +62,13 @@
     ROOT.textContent = "";
     var rows = (data && data.rows) || [];
     if (!rows.length) {
-      ROOT.appendChild(h("p", { text: "No Rangers on the board yet. Be the first! Pick a Ranger Nickname on your badges page." }));
+      ROOT.appendChild(h("p", { text: "No Rangers on the board yet. Be the first! Set up your Ranger Card." }));
     } else {
       var body = h("tbody");
       rows.forEach(function (r) {
         var isMe = me && r.name === me;
         var nameCell = h("td", { class: "mrl-name", text: r.name });
+        if (r.ooo) nameCell.appendChild(oooIcon());
         if (isMe) nameCell.appendChild(h("span", { class: "mrl-you", text: "You" }));
         body.appendChild(h("tr", { class: (r.rank <= 3 ? "mrl-top " : "") + (isMe ? "mrl-me" : "") }, [
           h("td", { class: "mrl-rank", text: "#" + r.rank }), nameCell, h("td", { class: "mrl-num", text: String(r.points) })]));
@@ -67,7 +77,7 @@
       ROOT.appendChild(h("div", { class: "mrl-panel" }, [table]));
     }
     var join = h("p", { class: "mrl-note" }, [document.createTextNode("Want to be on the board? "),
-      h("a", { href: "/my-badges#ranger-nickname", text: "Pick a Ranger Nickname" }), document.createTextNode(" on your badges page. The board refreshes about every five minutes, and your real name is never shown.")]);
+      h("a", { href: "/my#ranger-card", text: "Pick a Ranger Persona name" }), document.createTextNode(" on your Ranger Card. The board refreshes about every five minutes, and your real name is never shown.")]);
     ROOT.appendChild(join);
   }
   css();

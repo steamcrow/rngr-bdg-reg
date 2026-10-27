@@ -19,6 +19,11 @@ const RECLAIM_LINK_MIN = 60;         // a link works for one hour
 const BOARD_SIZE = 100;         // Glory Leaderboard length
 const BOARD_CACHE_SEC = 300;    // the board is built once per 5 minutes and kept at Cloudflare's edge: visitors never touch Odoo
 const NICK_MAX_PER_DAY = 6;     // nickname save attempts per Ranger per 24 hours
+const CARD_MAX_PER_DAY = 30;    // Ranger Card saves per Ranger per 24 hours
+const BRANCHES = ["Cargo Tigers", "Clocktalkers", "Conjure Guard", "Crows", "Dark Librarians", "Doom Mimes", "Monster Medics", "Psychics", "Rangers Core", "Scare Force", "Sea Rangers", "Secret Rangers", "Signal Rangers", "Skull Rangers", "Yokai Rangers"];
+const BARROWS = ["AZ", "CO", "CA", "PNW", "Barrowless"];   // local troops; everyone else is Barrowless
+const OOO_PRODUCTS = [6251, 6252, 6258, 6259];             // the four Order of Obscuria membership products (product templates)
+const OOO_SYNC_MIN = 5;                                    // active-subscription check runs every 5 minutes
 const NICK_RESERVED = ["admin", "administrator", "staff", "moderator", "mod", "support", "monsterrangers", "monsterranger", "steamcrow", "centralcommand", "official", "claude", "anthropic", "system", "odoo"];
 const NICK_BLOCKED = ["fuck", "shit", "cunt", "bitch", "nigg", "fagg", "retard", "nazi", "hitler", "whore", "porn", "kkk"];   // staff can also hide any row by ticking Blocked on the profile
 const MSG = {
@@ -30,6 +35,10 @@ const MSG = {
   nickBad: "Nicknames are 3 to 24 letters, numbers, spaces, dots or dashes, and must start and end with a letter or number.",
   nickRude: "Please pick a different nickname. Central Command keeps the board friendly.",
   nickTaken: "Another Ranger already has that nickname. Try a different one.",
+  cardOk: "Saved! Your Ranger Card is up to date.",
+  cardBad: "That Branch or Barrow isn't on the list. Please pick from the drop-down lists.",
+  cardLimit: "That's a lot of changes today. Please try again tomorrow.",
+  cardReview: "Central Command is reviewing your Ranger profile. Please contact us if you have questions.",
   nickLimit: "That's a lot of changes today. Please try again tomorrow.",
   nickReview: "Central Command is reviewing your nickname. Please contact us if you have questions.",
   invalid: "That code was not recognized. Check the characters and try again.",
@@ -44,6 +53,15 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (request.method === "GET" && url.pathname === "/board") return board(request, env, ctx);
+    if (request.method === "GET" && url.pathname === "/card-options")
+      return new Response(JSON.stringify({ branches: BRANCHES, barrows: BARROWS }), { status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*", "cache-control": "public, max-age=3600" } });
+    if (request.method === "POST" && url.pathname === `/card/${env.HOOK_SECRET}`) {
+      let cb; try { cb = await request.json(); } catch { return new Response("bad request", { status: 400 }); }
+      const cid = parseInt(cb._id ?? cb.id, 10);
+      if (!cid) return new Response("bad request", { status: 400 });
+      ctx.waitUntil(processCard(env, cid).catch((e) => console.log("card error", cid, e.message)));
+      return new Response("ok");
+    }
     if (request.method === "POST" && url.pathname === `/reclaim/${env.HOOK_SECRET}`) {
       let rb; try { rb = await request.json(); } catch { return new Response("bad request", { status: 400 }); }
       const rid = parseInt(rb._id ?? rb.id, 10);
@@ -67,6 +85,7 @@ export default {
   },
   async scheduled(event, env, ctx) {
     ctx.waitUntil(sweep(env));
+    if (new Date(event.scheduledTime).getUTCMinutes() % OOO_SYNC_MIN === 0) ctx.waitUntil(syncOoo(env).catch((e) => console.log("ooo sync error", e.message)));
     if (new Date(event.scheduledTime).getUTCMinutes() % 15 === 0) ctx.waitUntil(syncRetired(env).catch((e) => console.log("retired sync error", e.message)));   // every 15 minutes
   },
 };
@@ -81,6 +100,30 @@ export async function sweep(env) {
   for (const id of recl) await processReclaim(env, id).catch((e) => console.log("sweep reclaim error", id, e.message));
   const nicks = await o("x_badge_nick", "search", [[["x_status", "=", "pending"], ["create_date", "<", odooTime(Date.now() - 8000)]]], { limit: 20 }).catch(() => []);
   for (const id of nicks) await processNick(env, id).catch((e) => console.log("sweep nick error", id, e.message));
+  const cards = await o("x_badge_card", "search", [[["x_status", "=", "pending"], ["create_date", "<", odooTime(Date.now() - 8000)]]], { limit: 20 }).catch(() => []);
+  for (const id of cards) await processCard(env, id).catch((e) => console.log("sweep card error", id, e.message));
+}
+
+// ---- Order of Obscuria (OoO) membership: a Ranger with an In Progress subscription to one of the OoO products is a member ----
+// The card and the leaderboard only ever read the x_ooo flag on the Ranger Profile; this is the one place that decides it.
+export async function syncOoo(env) {
+  const o = odoo(env);
+  const lines = await o("sale.order.line", "search_read", [[["product_id.product_tmpl_id", "in", OOO_PRODUCTS], ["order_id.subscription_state", "=", "3_progress"]]], { fields: ["order_partner_id"], limit: 5000 });
+  const buyers = [...new Set(lines.map((l) => l.order_partner_id && l.order_partner_id[0]).filter(Boolean))];
+  const members = new Set(buyers);                              // the buyer, and the company/parent they belong to
+  if (buyers.length) for (const p of await o("res.partner", "read", [buyers], { fields: ["commercial_partner_id"] })) if (p.commercial_partner_id) members.add(p.commercial_partner_id[0]);
+  const profs = await o("x_badge_profile", "search_read", [[]], { fields: ["x_partner_id", "x_ooo"], limit: 50000 });
+  const have = new Set(profs.map((p) => p.x_partner_id && p.x_partner_id[0]));
+  const turnOn = profs.filter((p) => p.x_partner_id && members.has(p.x_partner_id[0]) && !p.x_ooo).map((p) => p.id);
+  const turnOff = profs.filter((p) => p.x_partner_id && !members.has(p.x_partner_id[0]) && p.x_ooo).map((p) => p.id);
+  if (turnOn.length) await o("x_badge_profile", "write", [turnOn, { x_ooo: true }]);
+  if (turnOff.length) await o("x_badge_profile", "write", [turnOff, { x_ooo: false }]);
+  let created = 0;                                              // members who never saved anything yet still need a profile row so their card can say "OoO Member"
+  if (members.size) {
+    const users = await o("res.users", "search_read", [[["partner_id", "in", [...members]], ["active", "=", true]]], { fields: ["partner_id"], limit: 5000 });
+    for (const u of users) { const pid = u.partner_id[0]; if (have.has(pid)) continue; await o("x_badge_profile", "create", [{ x_partner_id: pid, x_show: false, x_ooo: true }]); have.add(pid); created++; }
+  }
+  return { members: members.size, on: turnOn.length, off: turnOff.length, created };
 }
 
 // ---- RETIRED ribbon: a badge with no stock left wears the RETIRED ribbon; when stock comes back the ribbon comes off ----
@@ -241,10 +284,39 @@ export async function processNick(env, id, stale = false) {
   return finish("ok", vals.x_show ? MSG.nickOk : MSG.nickHidden);
 }
 
+// ---- Ranger Card: the Ranger picks ONE Branch and a Barrow from fixed lists. Nothing here trusts the browser: we re-check against the lists. ----
+export async function processCard(env, id, stale = false) {
+  const o = odoo(env);
+  let c = null;
+  for (const wait of [0, 300, 700, 1500, 3000]) {
+    if (wait) await sleep(wait);
+    const r = await o("x_badge_card", "read", [[id]], { fields: ["x_branch", "x_barrow", "x_status", "create_uid"] }).catch(() => []);
+    if (r.length) { c = r[0]; break; }
+  }
+  if (!c) return;
+  if (c.x_status !== "pending" && !(stale && c.x_status === "processing")) return;
+  await o("x_badge_card", "write", [[id], { x_status: "processing" }]);
+  const finish = (status, message) => o("x_badge_card", "write", [[id], { x_status: status, x_message: message }]);
+  const userId = c.create_uid && c.create_uid[0];
+  const user = userId ? (await o("res.users", "read", [[userId]], { fields: ["partner_id", "active"] }))[0] : null;
+  if (!user || !user.active || !user.partner_id) return finish("error", MSG.error);
+  const partnerId = user.partner_id[0];
+  if ((await o("x_badge_card", "search_count", [[["create_uid", "=", userId], ["create_date", ">", odooTime(Date.now() - 86400000)]]])) > CARD_MAX_PER_DAY) return finish("invalid", MSG.cardLimit);
+  const branch = (c.x_branch || "").trim(), barrow = (c.x_barrow || "").trim();
+  if ((branch && !BRANCHES.includes(branch)) || (barrow && !BARROWS.includes(barrow))) return finish("invalid", MSG.cardBad);
+  const mine = (await o("x_badge_profile", "search_read", [[["x_partner_id", "=", partnerId]]], { fields: ["x_blocked"], order: "id" }))[0];
+  if (mine && mine.x_blocked) return finish("invalid", MSG.cardReview);
+  const vals = { x_branch: branch || false, x_barrow: barrow || false };
+  if (mine) await o("x_badge_profile", "write", [[mine.id], vals]);
+  else await o("x_badge_profile", "create", [{ x_partner_id: partnerId, x_show: false, ...vals }]);   // hidden from the board until they pick a nickname and say yes
+  await syncOoo(env).catch((e) => console.log("ooo sync error", e.message));                           // so the card shows the right membership straight away
+  return finish("ok", MSG.cardOk);
+}
+
 // ---- The Glory Leaderboard: public, read-only, built from Odoo at most once per BOARD_CACHE_SEC and cached at the edge ----
 export async function buildBoard(env) {
   const o = odoo(env);
-  const profs = await o("x_badge_profile", "search_read", [[["x_show", "=", true], ["x_blocked", "!=", true], ["x_nickname", "!=", false]]], { fields: ["x_partner_id", "x_nickname"], limit: 5000 });
+  const profs = await o("x_badge_profile", "search_read", [[["x_show", "=", true], ["x_blocked", "!=", true], ["x_nickname", "!=", false]]], { fields: ["x_partner_id", "x_nickname", "x_ooo"], limit: 5000 });
   const ids = profs.map((p) => p.x_partner_id[0]);
   const dom = [["x_status", "=", "active"], ["x_partner_id", "in", ids]];
   const tally = new Map();                                  // partner id -> { points, badges }
@@ -258,10 +330,10 @@ export async function buildBoard(env) {
       for (const r of rows) { const t = tally.get(r.x_partner_id[0]) || { points: 0, badges: 0 }; t.points += r.x_points || 0; t.badges += 1; tally.set(r.x_partner_id[0], t); }
     }
   }
-  const list = profs.map((p) => ({ name: p.x_nickname, points: (tally.get(p.x_partner_id[0]) || { points: 0 }).points, badges: (tally.get(p.x_partner_id[0]) || { badges: 0 }).badges }))
+  const list = profs.map((p) => ({ name: p.x_nickname, points: (tally.get(p.x_partner_id[0]) || { points: 0 }).points, badges: (tally.get(p.x_partner_id[0]) || { badges: 0 }).badges, ooo: !!p.x_ooo }))
     .filter((r) => r.points > 0).sort((a, b) => b.points - a.points || a.name.localeCompare(b.name)).slice(0, BOARD_SIZE);
   let rank = 0, last = null, shown = 0;
-  return { updated: new Date().toISOString(), rows: list.map((r) => { shown++; if (r.points !== last) { rank = shown; last = r.points; } return { rank, name: r.name, points: r.points, badges: r.badges }; }) };
+  return { updated: new Date().toISOString(), rows: list.map((r) => { shown++; if (r.points !== last) { rank = shown; last = r.points; } return { rank, name: r.name, points: r.points, badges: r.badges, ooo: r.ooo }; }) };
 }
 async function board(request, env, ctx) {
   const headers = { "content-type": "application/json", "access-control-allow-origin": "*", "cache-control": `public, max-age=${BOARD_CACHE_SEC}` };

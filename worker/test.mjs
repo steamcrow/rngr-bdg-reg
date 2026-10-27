@@ -1,11 +1,11 @@
-import { processClaim, processReclaim, syncRetired, processNick, buildBoard, checkNick, sweep } from "./src/index.js";
+import { processClaim, processReclaim, syncRetired, processNick, buildBoard, checkNick, sweep, processCard, syncOoo } from "./src/index.js";
 // ---- a tiny pretend Odoo ----
 const db = {
   "res.users": { 7: { id: 7, partner_id: [70, "Ranger A"], active: true }, 8: { id: 8, partner_id: [80, "Ranger B"], active: true } },
   "product.template": { 100: { id: 100, name: "Yes Planchette", x_studio_badge_secret_code: "@ffirm", x_studio_badge_point_value: 10 },
                         101: { id: 101, name: "Dup A", x_studio_badge_secret_code: "twin", x_studio_badge_point_value: 10 },
                         102: { id: 102, name: "Dup B", x_studio_badge_secret_code: "twin", x_studio_badge_point_value: 10 } },
-  "x_badge_claim": {}, "x_badge_registration": {}, "x_badge_nick": {}, "x_badge_profile": {}, "x_badge_reclaim": {}, "mail.mail": {}, "product.public.category": { 2: { id: 2, name: "Everything" }, 4: { id: 4, name: "Spirit Badges" }, 47: { id: 47, name: "all-products" } }, "product.ribbon": { 5: { id: 5, name: "<p>Retired</p>" }, 6: { id: 6, name: "NEW" } },
+  "x_badge_claim": {}, "x_badge_registration": {}, "x_badge_nick": {}, "x_badge_profile": {}, "x_badge_reclaim": {}, "x_badge_card": {}, "sale.order.line": {}, "res.partner": {}, "mail.mail": {}, "product.public.category": { 2: { id: 2, name: "Everything" }, 4: { id: 4, name: "Spirit Badges" }, 47: { id: 47, name: "all-products" } }, "product.ribbon": { 5: { id: 5, name: "<p>Retired</p>" }, 6: { id: 6, name: "NEW" } },
 };
 let seq = 1000, nowMs = Date.now();
 const stamp = (ms) => new Date(ms).toISOString().replace("T", " ").slice(0, 19);
@@ -207,4 +207,53 @@ ok("at most 3 emails per old account per day", Object.values(db["mail.mail"]).fi
 for (let i = 0; i < 7; i++) await processReclaim(env, newReclaim(46, "nobody" + i));
 r = newReclaim(46, "ladydrac"); await processReclaim(env, r);
 ok("a Ranger can only ask so many times a day", db.x_badge_reclaim[r].x_status === "locked");
+
+// ---- Ranger Card (Branch + Barrow) and Order of Obscuria membership ----
+db["res.users"][96] = { id: 96, partner_id: [960, "Ranger C"], active: true }; db["res.users"][97] = { id: 97, partner_id: [970, "Ranger D"], active: true }; db["res.users"][98] = { id: 98, partner_id: [980, "Ranger E"], active: true };
+const newCard = (uid, branch, barrow) => { const id = ++seq; db.x_badge_card[id] = { id, x_branch: branch, x_barrow: barrow, x_status: "pending", create_uid: [uid, "u"], create_date: stamp(Date.now()) }; return id; };
+const cprof = (p) => Object.values(db.x_badge_profile).find((r) => r.x_partner_id === p);
+let k = newCard(96, "Crows", "AZ"); await processCard(env, k);
+ok("a Ranger with no profile yet can pick a Branch and Barrow (profile is created, hidden from the board)", db.x_badge_card[k].x_status === "ok" && cprof(960).x_branch === "Crows" && cprof(960).x_barrow === "AZ" && cprof(960).x_show === false);
+k = newCard(96, "Sea Rangers", "PNW"); await processCard(env, k);
+ok("changing Branch and Barrow overwrites the old choice, no second profile", db.x_badge_card[k].x_status === "ok" && cprof(960).x_branch === "Sea Rangers" && cprof(960).x_barrow === "PNW" && Object.values(db.x_badge_profile).filter((r) => r.x_partner_id === 960).length === 1);
+k = newCard(96, "Ninjas", "AZ"); await processCard(env, k);
+ok("a Branch that is not on the list is refused and nothing changes", db.x_badge_card[k].x_status === "invalid" && cprof(960).x_branch === "Sea Rangers");
+k = newCard(96, "Crows", "Narnia"); await processCard(env, k);
+ok("a Barrow that is not on the list is refused", db.x_badge_card[k].x_status === "invalid" && cprof(960).x_barrow === "PNW");
+k = newCard(96, "", "Barrowless"); await processCard(env, k);
+ok("an empty Branch clears it; Barrowless is allowed", db.x_badge_card[k].x_status === "ok" && !cprof(960).x_branch && cprof(960).x_barrow === "Barrowless");
+cprof(960).x_blocked = true; k = newCard(96, "Crows", "AZ"); await processCard(env, k);
+ok("a blocked Ranger cannot change the card", db.x_badge_card[k].x_status === "invalid" && !cprof(960).x_branch); cprof(960).x_blocked = false;
+k = newCard(96, "Crows", "AZ"); db.x_badge_card[k].x_status = "ok"; await processCard(env, k);
+ok("an already-finished card update is left alone", db.x_badge_card[k].x_status === "ok");
+for (let i = 0; i < 32; i++) await processCard(env, newCard(97, "Crows", "CA"));
+k = newCard(97, "Crows", "CA"); await processCard(env, k);
+ok("a Ranger can only save the card so many times a day", db.x_badge_card[k].x_status === "invalid");
+k = newCard(98, "Psychics", "CO"); db.x_badge_card[k].create_date = stamp(nowMs - 60000); await sweep(env);
+ok("sweeper finishes a forgotten card update", db.x_badge_card[k].x_status === "ok" && cprof(980).x_branch === "Psychics");
+
+// membership: an In Progress subscription to an OoO product = member; churned / other products = not
+db["res.partner"][960] = { id: 960, commercial_partner_id: [960, "Ranger C"] }; db["res.partner"][970] = { id: 970, commercial_partner_id: [970, "Ranger D"] }; db["res.partner"][985] = { id: 985, commercial_partner_id: [980, "Ranger E"] };
+const sub = (partner, tmpl, state) => { const id = ++seq; db["sale.order.line"][id] = { id, order_partner_id: [partner, "n"], "product_id.product_tmpl_id": tmpl, "order_id.subscription_state": state }; return id; };
+const l1 = sub(960, 6251, "3_progress"); sub(970, 6252, "6_churn"); sub(980, 9999, "3_progress");
+let res = await syncOoo(env);
+ok("an In Progress OoO subscription makes the Ranger an OoO member", cprof(960).x_ooo === true);
+ok("a churned subscription does not", !cprof(970).x_ooo);
+ok("a subscription to some other product does not", !cprof(980).x_ooo);
+const l2 = sub(985, 6259, "3_progress");
+res = await syncOoo(env);
+ok("a subscription bought by a contact counts for the company it belongs to", cprof(980).x_ooo === true);
+db["sale.order.line"][l1]["order_id.subscription_state"] = "6_churn";
+res = await syncOoo(env);
+ok("when the subscription ends, the member flag goes off", cprof(960).x_ooo === false);
+db["res.users"][99] = { id: 99, partner_id: [990, "Ranger F"], active: true }; sub(990, 6258, "3_progress");
+res = await syncOoo(env);
+ok("a member who never saved anything still gets a hidden profile that says OoO member", cprof(990) && cprof(990).x_ooo === true && cprof(990).x_show === false);
+ok("running it again changes nothing more", (await syncOoo(env)).created === 0);
+cprof(960).x_nickname = "Card Test"; cprof(960).x_show = true; cprof(960).x_ooo = true;
+db.x_badge_registration[++seq] = { id: seq, x_partner_id: 960, x_product_id: 100, x_status: "active", x_points: 77 };
+b = await buildBoard(env); const row = b.rows.find((r) => r.name === "Card Test");
+ok("the leaderboard marks OoO members, and only with a simple yes/no", row && row.ooo === true && !JSON.stringify(b).match(/commercial|sale|subscription/));
+cprof(960).x_ooo = false; b = await buildBoard(env);
+ok("non-members are marked as not members", b.rows.find((r) => r.name === "Card Test").ooo === false);
 console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED"); process.exit(fails ? 1 : 0);

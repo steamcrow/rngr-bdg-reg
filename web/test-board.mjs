@@ -11,10 +11,12 @@ let d = await run({ rows: [{ rank: 1, name: "Moss Fox", points: 335 }, { rank: 2
 ok("shows one row per Ranger with rank and Glory", d.querySelectorAll("tbody tr").length === 4 && d.querySelector("tbody tr").textContent.includes("#1") && d.querySelector("td.mrl-num").textContent === "335");
 ok("names are plain text, never HTML", !d.querySelector("td img") && d.body.textContent.includes("<img"));
 ok("tied Rangers share a rank", d.querySelectorAll("tbody tr")[1].textContent.includes("#2") && d.querySelectorAll("tbody tr")[2].textContent.includes("#2"));
-ok("logged-out visitors see the board and a join link", d.querySelector("a[href*='ranger-nickname']") && !d.querySelector(".mrl-me"));
+ok("logged-out visitors see the board and a join link", d.querySelector("a[href*='ranger-card']") && !d.querySelector(".mrl-me"));
 d = await run({ rows: [{ rank: 1, name: "Moss Fox", points: 1 }, { rank: 2, name: "Wren", points: 1 }], session: { uid: 9 }, nick: "Wren" });
 ok("a logged-in Ranger's own row is highlighted", d.querySelector(".mrl-me") && /Wren/.test(d.querySelector(".mrl-me").textContent) && /You/.test(d.querySelector(".mrl-me").textContent));
 d = await run({ rows: [] }); ok("empty board invites the first Ranger", /first/i.test(d.body.textContent));
 d = await run({ rows: [], boardFail: true }); ok("board down -> friendly message", /couldn't be loaded/.test(d.body.textContent));
 d = await run({ rows: [], noBoard: true }); ok("missing address -> not set up message", /not set up/.test(d.body.textContent));
+d = await run({ rows: [{ rank: 1, name: "Moss Fox", points: 9, ooo: true }, { rank: 2, name: "Wren", points: 5, ooo: false }, { rank: 3, name: "Pip", points: 1 }] });
+ok("OoO Members get a small seal next to their name, with a text label for screen readers", d.querySelectorAll(".mrl-ooo").length === 1 && /Moss Fox/.test(d.querySelector(".mrl-ooo").closest("td").textContent) && d.querySelector(".mrl-ooo").getAttribute("aria-label") === "Order of Obscuria Member");
 console.log(fails ? fails + " FAILED" : "ALL PASSED");
