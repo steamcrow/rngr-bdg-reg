@@ -18,7 +18,7 @@
     (kids || []).forEach(function (c) { if (c) el.appendChild(c); });
     return el;
   }
-  /* PLACEHOLDER Order of Obscuria seal (swap for real art later). The Ranger Card page has its own copy. */
+  /* PLACEHOLDER Order of Obscuria seal (swap for real art later). The Membership Card page has its own copy. */
   function oooIcon() {
     var NS = "http://www.w3.org/2000/svg", wrap = h("span", { class: "mrl-ooo", role: "img", "aria-label": "Order of Obscuria Member", title: "Order of Obscuria Member" });
     var svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("width", "20"); svg.setAttribute("height", "20"); svg.setAttribute("aria-hidden", "true");
@@ -62,7 +62,7 @@
     ROOT.textContent = "";
     var rows = (data && data.rows) || [];
     if (!rows.length) {
-      ROOT.appendChild(h("p", { text: "No Rangers on the board yet. Be the first! Set up your Ranger Card." }));
+      ROOT.appendChild(h("p", { text: "No Rangers on the board yet. Be the first! Set up your Membership Card." }));
     } else {
       var body = h("tbody");
       rows.forEach(function (r) {
@@ -77,7 +77,7 @@
       ROOT.appendChild(h("div", { class: "mrl-panel" }, [table]));
     }
     var join = h("p", { class: "mrl-note" }, [document.createTextNode("Want to be on the board? "),
-      h("a", { href: "/my#ranger-card", text: "Pick a Ranger Persona name" }), document.createTextNode(" on your Ranger Card. The board refreshes about every five minutes, and your real name is never shown.")]);
+      h("a", { href: "/my#ranger-card", text: "Pick a Ranger Persona name" }), document.createTextNode(" on your Membership Card. The board refreshes about every five minutes, and your real name is never shown.")]);
     ROOT.appendChild(join);
   }
   css();

@@ -161,45 +161,12 @@
       }
     }).catch(function () { /* the reclaim tables are not installed on this site yet: show nothing */ });
   }
-  // ---- Ranger Nickname: the public name for the Glory leaderboard. The checker (Worker) approves it; nothing here decides anything. ----
-  function nickPanel() {
-    return rpc("x_badge_profile", "search_read", [[]], { fields: ["x_nickname", "x_show"], limit: 1 }).then(function (rows) {
-      var mine = rows[0] || {};
-      var input = h("input", { type: "text", name: "nickname", maxlength: "24", autocomplete: "off", spellcheck: "false", placeholder: "Your Ranger Nickname", "aria-label": "Ranger Nickname" });
-      input.value = mine.x_nickname || "";
-      var cb = h("input", { type: "checkbox", id: "mrn-show", name: "show" }); cb.checked = !!mine.x_show;
-      var msg = h("div", { class: "mrn-msg", "aria-live": "polite", role: "status" });
-      var btn = h("button", { type: "submit", class: "btn btn-primary", text: "Save nickname" });
-      var form = h("form", { novalidate: "novalidate" }, [h("div", { class: "mrn-row" }, [input, btn]),
-        h("label", { class: "mrn-check", for: "mrn-show" }, [cb, h("span", { text: "Show me on the Glory Leaderboard" })]), msg]);
-      form.style.display = "block";
-      var busy = false;
-      function sayN(kind, text) { msg.className = "mrn-msg " + kind; msg.textContent = text; }
-      function pollN(id, n) {
-        return rpc("x_badge_nick", "read", [[id]], { fields: ["x_status", "x_message"] }).then(function (r) {
-          var c = r[0] || {};
-          if (c.x_status === "pending" || c.x_status === "processing") {
-            if (n >= POLL_MAX) { sayN("warn", "Still saving... please check again in a minute."); return; }
-            return new Promise(function (ok) { setTimeout(ok, POLL_MS); }).then(function () { return pollN(id, n + 1); });
-          }
-          sayN(c.x_status === "ok" ? "ok" : "bad", c.x_message || "Something went wrong. Please try again.");
-        });
-      }
-      form.addEventListener("submit", function (ev) {
-        ev.preventDefault(); if (busy) return;
-        var name = input.value.replace(/\s+/g, " ").trim();
-        if (cb.checked && !name) { sayN("warn", "Type a Ranger Nickname first, or untick the box."); return; }
-        busy = true; btn.disabled = true; sayN("warn", "Saving...");
-        rpc("x_badge_nick", "create", [{ x_nickname: name, x_show: cb.checked }]).then(function (id) { return pollN(id, 0); })
-          .catch(function () { sayN("bad", "We couldn't reach the badge desk. Nothing was changed. Please try again."); })
-          .then(function () { busy = false; btn.disabled = false; });
-      });
-      var help = h("ul", { class: "mrn-help" }, [h("li", { text: "This is the name other Rangers see on the Glory Leaderboard. Your real name and email are never shown." }),
-        h("li", { text: "3 to 24 letters, numbers, spaces, dots or dashes. Each nickname can only belong to one Ranger." }),
-        h("li", { text: "Tick the box to join the board, or untick it to hide yourself again. Changes show up within about five minutes." })]);
-      var link = h("p", {}, [h("a", { href: "/leaderboard", text: "See the Glory Leaderboard" })]);
-      ROOT.appendChild(h("div", { class: "mrb-panel", id: "ranger-nickname", style: "margin-top:2rem" }, [h("h2", { class: "mrb-label", text: "Your Ranger Nickname" }), help, form, link]));
-    }).catch(function () { /* the nickname tables are not installed on this site yet: show nothing */ });
+  // ---- The Persona name, Branch, Barrow and leaderboard choice now live on the Monster Rangers Membership Card (the account page), so here we only point to it. ----
+  function cardLink() {
+    ROOT.appendChild(h("div", { class: "mrb-panel", id: "ranger-card-link", style: "margin-top:2rem" }, [
+      h("p", { style: "margin:0" }, [document.createTextNode("Pick your Ranger Persona name, Branch and Barrow, and choose whether to join the Glory Leaderboard, on your "),
+        h("a", { href: "/my#ranger-card", text: "Monster Rangers Membership Card" }), document.createTextNode(".")])]));
+    return Promise.resolve();
   }
   function load() {
     return whoAmI().then(function (me) {              // staff can see everyone's badges, so always ask for MY partner only
@@ -248,7 +215,7 @@
     more.addEventListener("click", function () { state.shown += PAGE; render(); });
     var top = h("div", { class: "mrb-top", id: "my-collection" }, [h("div", { class: "mrb-total", text: "" }), search]);
     ROOT.appendChild(top); ROOT.appendChild(h("div", { class: "mrb-grid" })); ROOT.appendChild(more);
-    return load().then(reclaimPanel).then(nickPanel);
+    return load().then(reclaimPanel).then(cardLink);
   }
   whoAmI().then(function (s) {
     var loggedIn = s && s.uid && !s.is_public && !s.is_website_user;

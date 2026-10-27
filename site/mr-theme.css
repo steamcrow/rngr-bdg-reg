@@ -152,3 +152,32 @@ code, pre, kbd, samp { font-family: ui-monospace, "Courier Prime", Menlo, Consol
 /* ---- button text and icons are always white ---- */
 #wrapwrap :is(.btn-primary, .btn-secondary), #wrapwrap :is(.btn-primary, .btn-secondary) :is(span, i, svg, .fa) { color: #fff !important; }
 #wrapwrap > main .page-item.active .page-link, #wrapwrap > main .page-item.active .page-link * { color: #fff !important; }
+
+/* ---- user menu: in this Odoo version Logout is a <button> inside a form, so the link colours above missed it ---- */
+.js_usermenu form.dropdown-item { padding: 0 !important; background: transparent !important; }
+.js_usermenu :is(button, .btn) {
+  color: var(--mr-cream) !important; background: transparent !important; border: 0 !important; box-shadow: none !important; opacity: 1 !important;
+  font-family: var(--mr-font-ui); font-size: 1.25rem; letter-spacing: .07em; text-transform: uppercase; text-align: left;
+}
+.js_usermenu :is(button, .btn):hover, .js_usermenu :is(button, .btn):focus-visible { color: var(--mr-orange-hi) !important; }
+
+/* ---- account page (/my): the tiles become one even grid of cards, like the rest of the site ---- */
+.o_portal_my_home .o_portal_docs { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: 1rem; margin: 0; }
+.o_portal_my_home .o_portal_category { display: contents; }                       /* all tiles share one grid, so there are no half-empty rows */
+.o_portal_my_home .o_portal_docs > *, .o_portal_my_home .o_portal_category > * { width: auto; max-width: none; margin: 0; padding: 0; flex: none; }
+.o_portal_my_home .o_portal_index_card { order: 0 !important; grid-column: auto !important; }
+.o_portal_my_home .o_portal_doc_spinner { grid-column: 1 / -1; justify-self: center; }
+.o_portal_my_home .o_portal_index_card > a {
+  background: var(--mr-card-bg) !important; color: var(--mr-ink) !important; border: 2px dashed var(--mr-line); border-radius: .5rem !important;
+  padding: 1rem 1.2rem !important; box-shadow: none; transition: border-color .12s;
+}
+.o_portal_my_home .o_portal_index_card > a:hover { border-style: solid; border-color: var(--mr-orange); }
+.o_portal_my_home .o_portal_index_card > a :is(span, div) { color: var(--mr-ink); }
+.o_portal_my_home .o_portal_index_card > a .fs-5 { font-family: var(--mr-font-head); font-weight: 700; text-transform: uppercase; letter-spacing: .02em; font-size: 1.3rem !important; line-height: 1.15 !important; }
+.o_portal_my_home .o_portal_index_card > a .opacity-75 { opacity: .85 !important; }
+.o_portal_my_home .o_portal_icon img { width: 3rem; height: 3rem; object-fit: contain; }
+
+/* ---- shop list pages: no category sidebar, no pricelist drop-down, products use the full width ---- */
+#wrapwrap > main #o_wsale_container #products_grid_before, #wrapwrap > main #o_wsale_container .o_pricelist_dropdown { display: none !important; }
+#wrapwrap > main #o_wsale_container { max-width: none; padding-left: 2rem; padding-right: 2rem; }
+#wrapwrap > main #o_wsale_container #products_grid { flex: 1 1 100%; max-width: 100%; width: 100%; }

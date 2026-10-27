@@ -19,7 +19,7 @@ const RECLAIM_LINK_MIN = 60;         // a link works for one hour
 const BOARD_SIZE = 100;         // Glory Leaderboard length
 const BOARD_CACHE_SEC = 300;    // the board is built once per 5 minutes and kept at Cloudflare's edge: visitors never touch Odoo
 const NICK_MAX_PER_DAY = 6;     // nickname save attempts per Ranger per 24 hours
-const CARD_MAX_PER_DAY = 30;    // Ranger Card saves per Ranger per 24 hours
+const CARD_MAX_PER_DAY = 30;    // Membership Card saves per Ranger per 24 hours
 const BRANCHES = ["Cargo Tigers", "Clocktalkers", "Conjure Guard", "Crows", "Dark Librarians", "Doom Mimes", "Monster Medics", "Psychics", "Rangers Core", "Scare Force", "Sea Rangers", "Secret Rangers", "Signal Rangers", "Skull Rangers", "Yokai Rangers"];
 const BARROWS = ["AZ", "CO", "CA", "PNW", "Barrowless"];   // local troops; everyone else is Barrowless
 const OOO_PRODUCTS = [6251, 6252, 6258, 6259];             // the four Order of Obscuria membership products (product templates)
@@ -35,7 +35,7 @@ const MSG = {
   nickBad: "Nicknames are 3 to 24 letters, numbers, spaces, dots or dashes, and must start and end with a letter or number.",
   nickRude: "Please pick a different nickname. Central Command keeps the board friendly.",
   nickTaken: "Another Ranger already has that nickname. Try a different one.",
-  cardOk: "Saved! Your Ranger Card is up to date.",
+  cardOk: "Saved! Your Membership Card is up to date.",
   cardBad: "That Branch or Barrow isn't on the list. Please pick from the drop-down lists.",
   cardLimit: "That's a lot of changes today. Please try again tomorrow.",
   cardReview: "Central Command is reviewing your Ranger profile. Please contact us if you have questions.",
@@ -284,7 +284,7 @@ export async function processNick(env, id, stale = false) {
   return finish("ok", vals.x_show ? MSG.nickOk : MSG.nickHidden);
 }
 
-// ---- Ranger Card: the Ranger picks ONE Branch and a Barrow from fixed lists. Nothing here trusts the browser: we re-check against the lists. ----
+// ---- Membership Card: the Ranger picks ONE Branch and a Barrow from fixed lists. Nothing here trusts the browser: we re-check against the lists. ----
 export async function processCard(env, id, stale = false) {
   const o = odoo(env);
   let c = null;

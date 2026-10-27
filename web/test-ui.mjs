@@ -74,14 +74,8 @@ ok("badge names are shown as plain text, never as HTML", !t.doc.querySelector(".
 
 t = await run({ session: { uid: 9 }, regs: [{ x_product_id: [100, "Yes Planchette Spirit Badge"], x_points: 10 }], profile: [{ x_nickname: "Ranger Dan", x_show: true }], nickFlow: [{ x_status: "pending" }, { x_status: "ok", x_message: "Saved!" }] });
 ok("badge cards link to the shop page", t.doc.querySelector("a.mrb-card").getAttribute("href") === "/shop/100");
-ok("nickname panel is filled in from the saved profile", t.doc.querySelector("input[name=nickname]").value === "Ranger Dan" && t.doc.querySelector("#mrn-show").checked);
-t.doc.querySelector("input[name=nickname]").value = "  Moss   Fox ";
-const nf = t.doc.querySelectorAll("form")[1]; nf.dispatchEvent(new t.w.Event("submit", { cancelable: true })); await sleep(1500);
-const nc = t.calls.find((c) => c[0] === "x_badge_nick/create");
-ok("nickname request sends only name and show flag, spaces tidied", nc && nc[1].args[0].x_nickname === "Moss Fox" && nc[1].args[0].x_show === true && Object.keys(nc[1].args[0]).length === 2);
-ok("nickname result is shown", /Saved!/.test(t.doc.querySelector(".mrn-msg").textContent));
-t = await run({ session: { uid: 9 }, regs: [] });
-ok("if the nickname tables are not installed the page still works", t.doc.querySelector("form") && !t.doc.querySelector("#ranger-nickname"));
+ok("the big nickname form is gone from My Collection; a short link points to the Membership Card instead", !t.doc.querySelector("input[name=nickname]") && !t.doc.querySelector("#ranger-nickname") && t.doc.querySelector("#ranger-card-link a").getAttribute("href") === "/my#ranger-card" && /Membership Card/.test(t.doc.querySelector("#ranger-card-link").textContent));
+ok("My Collection no longer reads the profile or makes nickname requests", !t.calls.some((c) => c[0].startsWith("x_badge_profile") || c[0].startsWith("x_badge_nick")));
 
 t = await run({ session: { uid: 9 }, regs: [], reclaim: true, reclaimFlow: [{ x_status: "processing" }, { x_status: "sent", x_message: "We sent a link." }] });
 ok("reclaim box is there, closed, above the collection", t.doc.querySelector("details#reclaim-badges") && !t.doc.querySelector("details#reclaim-badges").open && t.doc.querySelector("#reclaim-badges").compareDocumentPosition(t.doc.querySelector(".mrb-top")) & 4);

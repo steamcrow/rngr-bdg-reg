@@ -1,4 +1,4 @@
-/* Monster Rangers - Ranger Card (loaded from GitHub via jsDelivr, only on the account page /my).
+/* Monster Rangers - Membership Card (loaded from GitHub via jsDelivr, only on the account page /my).
    A virtual membership card at the top of the Odoo account page: Ranger Persona name, Branch, Barrow, Order of Obscuria (OoO) status.
    It holds NO secrets and decides NOTHING: every change is a request record that Odoo stamps with the logged-in user,
    and the checker (Cloudflare Worker) validates it against fixed lists and saves it. */
@@ -86,7 +86,7 @@
   function mount() {
     var host = document.querySelector(".o_portal_my_home") || document.querySelector("#wrap .o_portal_wrap") || document.querySelector("#wrap") || document.querySelector("main");
     if (!host) return null;
-    var box = h("section", { id: "mr-card-app", "aria-label": "Your Ranger Card" });
+    var box = h("section", { id: "mr-card-app", "aria-label": "Your Monster Rangers Membership Card" });
     host.insertBefore(box, host.firstChild);
     return box;
   }
@@ -121,7 +121,7 @@
     var branch = select("mrc-branch", "Ranger Branch", st.opts && st.opts.branches, p.x_branch, "Choose a Branch");
     var barrow = select("mrc-barrow", "Barrow (your local troop)", st.opts && st.opts.barrows, p.x_barrow, "Choose a Barrow");
     var msg = h("div", { class: "mrc-msg", "aria-live": "polite", role: "status" });
-    var btn = h("button", { type: "submit", class: "btn btn-primary", text: "Save my Ranger Card" });
+    var btn = h("button", { type: "submit", class: "btn btn-primary", text: "Save my Membership Card" });
     var form = h("form", { novalidate: "novalidate" }, [
       h("div", { class: "mrc-grid" }, [h("div", {}, [h("label", { for: "mrc-persona", text: "Ranger Persona name" }), persona]), branch, barrow]),
       h("div", { class: "mrc-check" }, [cb, h("label", { for: "mrc-show", text: "Show me on the Glory Leaderboard" })]),
@@ -144,7 +144,7 @@
         .then(function (id) { return pollRec("x_badge_card", id, 0); }).then(function (r) { results.push(r); });
       chain.then(function () {
         var bad = results.filter(function (r) { return !r.ok; })[0];
-        var text = bad ? bad.message : (results.length > 1 ? "Saved! Your Ranger Card is up to date." : results[0].message);
+        var text = bad ? bad.message : (results.length > 1 ? "Saved! Your Membership Card is up to date." : results[0].message);
         return readProfile().then(function (np) { st.profile = np; draw(box, st, { kind: bad ? "bad" : "ok", text: text }); });
       }).catch(function () {
         busy = false; btn.disabled = false; say("bad", "We couldn't reach the badge desk. Nothing was changed. Please try again.");
@@ -153,7 +153,7 @@
     var help = h("p", { class: "mrc-help", text: "Your Persona name is the only name other Rangers see. Your real name and email are never shown. You can belong to more than one Branch, but your card shows one: pick the one you want to show off." +
       (st.opts ? "" : " (The Branch and Barrow lists couldn't be loaded right now. Please refresh in a minute to change them.)") });
     var card = h("div", { class: "mrc-card", id: "ranger-card" }, [
-      h("p", { class: "mrc-kicker", text: "Monster Rangers Ranger Card" }),
+      h("p", { class: "mrc-kicker", text: "Monster Rangers Membership Card" }),
       h("div", { class: "mrc-top" }, [h("h2", { class: "mrc-name" + (nick ? "" : " mrc-none"), text: nick || "No Persona name yet" }), chip]),
       facts, form, help]);
     box.appendChild(card);
