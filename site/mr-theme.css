@@ -181,3 +181,11 @@ code, pre, kbd, samp { font-family: ui-monospace, "Courier Prime", Menlo, Consol
 #wrapwrap > main #o_wsale_container #products_grid_before, #wrapwrap > main #o_wsale_container .o_pricelist_dropdown { display: none !important; }
 #wrapwrap > main #o_wsale_container { max-width: none; padding-left: 2rem; padding-right: 2rem; }
 #wrapwrap > main #o_wsale_container #products_grid { flex: 1 1 100%; max-width: 100%; width: 100%; }
+
+/* ---- shop search box: white with an orange outline ---- */
+#wrapwrap .o_searchbar_form .input-group,
+#wrapwrap .o_searchbar_form .form-control { background: #fff !important; }
+#wrapwrap .o_searchbar_form .input-group { border: 2px solid var(--mr-orange); border-radius: .5rem; overflow: hidden; }
+#wrapwrap .o_searchbar_form .form-control,
+#wrapwrap .o_searchbar_form .btn { border: 0 !important; box-shadow: none !important; background: #fff !important; }
+#wrapwrap .o_searchbar_form .input-group:focus-within { box-shadow: 0 0 0 3px rgba(220,107,33,.25); }
