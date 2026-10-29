@@ -189,3 +189,8 @@ code, pre, kbd, samp { font-family: ui-monospace, "Courier Prime", Menlo, Consol
 #wrapwrap .o_searchbar_form .form-control,
 #wrapwrap .o_searchbar_form .btn { border: 0 !important; box-shadow: none !important; background: #fff !important; }
 #wrapwrap .o_searchbar_form .input-group:focus-within { box-shadow: 0 0 0 3px rgba(220,107,33,.25); }
+
+/* ---- header search button: same soft circle as the cart and wishlist (it was white-on-white) ---- */
+#wrapwrap > header a.o_navlink_background[title="Search"] { background-color: rgba(255, 255, 255, .1) !important; border-color: transparent !important; color: var(--mr-cream) !important; }
+#wrapwrap > header a.o_navlink_background[title="Search"] i { color: var(--mr-cream) !important; }
+#wrapwrap > header a.o_navlink_background[title="Search"]:hover { background-color: rgba(220, 107, 33, .35) !important; }
