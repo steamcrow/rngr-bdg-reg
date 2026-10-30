@@ -197,3 +197,6 @@ code, pre, kbd, samp { font-family: ui-monospace, "Courier Prime", Menlo, Consol
 #wrapwrap > header a.o_navlink_background[title="Search"] { background-color: rgba(255, 255, 255, .1) !important; border-color: transparent !important; color: var(--mr-cream) !important; }
 #wrapwrap > header a.o_navlink_background[title="Search"] i { color: var(--mr-cream) !important; }
 #wrapwrap > header a.o_navlink_background[title="Search"]:hover { background-color: rgba(220, 107, 33, .35) !important; }
+
+/* ---- Gloomin's Branch Chooser: the quiz's outer white box is clear, so the parchment shows through (the dark card inside stays) ---- */
+#wrapwrap .gloomin-quiz { background: transparent !important; min-height: 0 !important; }
