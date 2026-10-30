@@ -38,6 +38,9 @@
 #wrapwrap > main { line-height: 1.7; }
 #wrapwrap > main .container, #wrapwrap > main .container-fluid { max-width: 1140px; }
 #wrapwrap > main p, #wrapwrap > main li { max-width: 75ch; }          /* lines short enough to read comfortably */
+/* a centered (or right-aligned) paragraph is a narrower box: park the box in the middle (or on the right) so buttons and text sit under their headings */
+#wrapwrap > main p[style*="text-align: center"], #wrapwrap > main p.text-center, #wrapwrap > main .text-center p { margin-left: auto; margin-right: auto; }
+#wrapwrap > main p[style*="text-align: right"], #wrapwrap > main p.text-end, #wrapwrap > main .text-end p { margin-left: auto; }
 
 /* ---- links on paper ---- */
 #wrapwrap > main a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link) { color: var(--mr-orange-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }

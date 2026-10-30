@@ -86,6 +86,7 @@ export default {
   async scheduled(event, env, ctx) {
     ctx.waitUntil(sweep(env));
     if (new Date(event.scheduledTime).getUTCMinutes() % OOO_SYNC_MIN === 0) ctx.waitUntil(syncOoo(env).catch((e) => console.log("ooo sync error", e.message)));
+    if (new Date(event.scheduledTime).getUTCMinutes() % OOO_SYNC_MIN === 0) ctx.waitUntil(syncPricelists(env).catch((e) => console.log("pricelist sync error", e.message)));
     if (new Date(event.scheduledTime).getUTCMinutes() % 15 === 0) ctx.waitUntil(syncRetired(env).catch((e) => console.log("retired sync error", e.message)));   // every 15 minutes
   },
 };
@@ -124,6 +125,32 @@ export async function syncOoo(env) {
     for (const u of users) { const pid = u.partner_id[0]; if (have.has(pid)) continue; await o("x_badge_profile", "create", [{ x_partner_id: pid, x_show: false, x_ooo: true }]); have.add(pid); created++; }
   }
   return { members: members.size, on: turnOn.length, off: turnOff.length, created };
+}
+
+// ---- Pricelists follow the OoO level: nobody picks one. Core 10% / Badge 15% / Mystery 20% / Advisory 30% ----
+// Off until the Worker setting PRICELIST_SYNC is "1". Lapsed members go back to Default only if PRICELIST_RESET is "1".
+// Anyone tagged "Keep pricelist (manual)" is never touched.
+const PRICELIST_BY_PRODUCT = { 6251: [1, 6], 6252: [2, 7], 6258: [3, 8], 6259: [4, 9] };   // product template -> [rank, pricelist id]
+const OOO_PRICELISTS = [2, 3, 4, 5, 6, 7, 8, 9];
+const KEEP_TAG = "Keep pricelist (manual)";
+export async function syncPricelists(env) {
+  if (env.PRICELIST_SYNC !== "1") return { skipped: true };
+  const o = odoo(env);
+  const F = "specific_property_product_pricelist";
+  const lines = await o("sale.order.line", "search_read", [[["product_id.product_tmpl_id", "in", Object.keys(PRICELIST_BY_PRODUCT).map(Number)], ["order_id.subscription_state", "=", "3_progress"]]], { fields: ["order_partner_id", "product_template_id"], limit: 5000 });
+  const best = new Map();                                       // buyer -> [rank, pricelist]; the highest level wins
+  for (const l of lines) { const pid = l.order_partner_id && l.order_partner_id[0]; const lv = PRICELIST_BY_PRODUCT[l.product_template_id && l.product_template_id[0]]; if (pid && lv && (!best.has(pid) || lv[0] > best.get(pid)[0])) best.set(pid, lv); }
+  const target = new Map([...best].map(([p, lv]) => [p, lv[1]]));
+  if (best.size) for (const p of await o("res.partner", "read", [[...best.keys()]], { fields: ["commercial_partner_id"] })) { const c = p.commercial_partner_id && p.commercial_partner_id[0]; if (c && !target.has(c)) target.set(c, best.get(p.id)[1]); }
+  const tagged = new Set((await o("res.partner", "search_read", [[["category_id.name", "=", KEEP_TAG]]], { fields: ["id"], context: { active_test: false } })).map((x) => x.id));
+  const holders = await o("res.partner", "search_read", [[[F, "in", OOO_PRICELISTS]]], { fields: [F], context: { active_test: false }, limit: 5000 });
+  const have = new Map(holders.map((h) => [h.id, h[F] && h[F][0]]));
+  const ids = [...target.keys()].filter((id) => !have.has(id));
+  if (ids.length) for (const r of await o("res.partner", "read", [ids], { fields: [F], context: { active_test: false } })) have.set(r.id, r[F] && r[F][0]);
+  let set = 0, reset = 0;
+  for (const [pid, pl] of target) if (!tagged.has(pid) && have.get(pid) !== pl) { await o("res.partner", "write", [[pid], { [F]: pl }]); set++; }
+  if (env.PRICELIST_RESET === "1") for (const [pid] of have) if (!target.has(pid) && !tagged.has(pid) && OOO_PRICELISTS.includes(have.get(pid))) { await o("res.partner", "write", [[pid], { [F]: 1 }]); reset++; }
+  return { members: target.size, set, reset };
 }
 
 // ---- RETIRED ribbon: a badge with no stock left wears the RETIRED ribbon; when stock comes back the ribbon comes off ----
