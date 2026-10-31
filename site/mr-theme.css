@@ -200,3 +200,14 @@ code, pre, kbd, samp { font-family: ui-monospace, "Courier Prime", Menlo, Consol
 
 /* ---- Gloomin's Branch Chooser: the quiz's outer white box is clear, so the parchment shows through (the dark card inside stays) ---- */
 #wrapwrap .gloomin-quiz { background: transparent !important; min-height: 0 !important; }
+
+/* ---- Home: "take the branch quiz" scrolling banner ---- */
+#wrapwrap #Announcement-Scroll .s_announcement_scroll_marquee_container,
+#wrapwrap #Announcement-Scroll .s_announcement_scroll_marquee_item {
+  font-family: var(--mr-font-head) !important;
+  letter-spacing: .04em;
+}
+/* the whole banner is one link (an empty link laid over the strip) */
+#wrapwrap #Announcement-Scroll a.mr-quiz-banner-link { position: absolute; inset: 0; z-index: 5; }
+.editor_enable #Announcement-Scroll a.mr-quiz-banner-link,
+.o_edit_mode #Announcement-Scroll a.mr-quiz-banner-link { pointer-events: none; }
